@@ -1,0 +1,13 @@
+numpy
+pandas
+matplotlib
+seaborn
+NLTK
+spaCy
+Scikit-Learn
+HuggingFace
+FastAPI
+pipreqs
+transformers 
+pydantic
+requests
