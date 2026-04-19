@@ -12,10 +12,31 @@ Currently, the project focuses on **Data Collection**. Having finished local lab
 
 We connect to Supabase utilizing SQLAlchemy and `psycopg2`. 
 
-- **Connection Script:** `src/main.py`
 - **Environment configuration:** `src/.env` (contains `user`, `password`, `host`, `port`, `dbname`). Note: Ensure the SSL mode is set to require as per standard Supabase connection strings.
+- **Production Connection Script:** `src/main.py`
 
-Fetching data via `main.py` ensures that all subsequent NLP and Data Analysis routines work off a single unified, up-to-date data source, avoiding local CSV fragmentation.
+**Important Workflow Note: Jupyter Notebook First**
+In the initial and primary stages of the project, **all tasks** should be performed exclusively inside a Jupyter Notebook (`notebook/ai_grievance_system.ipynb`).
+
+The correct workflow is to:
+1. Connect to the Supabase SQL database inside the notebook.
+2. Fetch the data using standard SQL commands.
+3. Perform Exploratory Data Analysis (EDA), preprocess and clean the data.
+4. Train and validate NLP models.
+
+The standalone `src/main.py` connection script is **reserved for much later** in the project, serving as the entry point when the team is ready to package and deploy the final pipeline.
+
+To start fetching data and exploring in your notebook, ensure you run these imports:
+
+```python
+import pandas as pd
+import numpy as np
+from sqlalchemy import create_engine
+from dotenv import load_dotenv
+import os
+```
+
+Fetching data directly from the Supabase connection during the EDA phase ensures that all analysis routines work off a single unified, up-to-date data source, avoiding local CSV fragmentation.
 
 ---
 
@@ -27,7 +48,7 @@ Fetching data via `main.py` ensures that all subsequent NLP and Data Analysis ro
 - Output chunks: `data/processed/labeled_dataset_1.csv`, `data/processed/labeled_dataset_2.csv`, etc.
 - Human review queue: CSV files at `data/review_bucket/review_bucket_1.csv`, etc.
 - Chunk size: 500 rows
-- Model provider: local Ollama API (`llama3.3`)
+- Model provider: Gemini API (`gemini-3.1-flash lite`)
 
 The labeling runner checked existing numbered chunk files in `data/processed` and resumed from the next missing complete chunk. Rows were copied to `data/review_bucket` when the model failed to return a valid severity or when `confidence_score` fell below the review threshold (default `0.80`). These review files stayed in CSV format for human correction.
 

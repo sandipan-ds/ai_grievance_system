@@ -3,7 +3,7 @@
 Project 1: AI-driven citizen grievance severity labeling and NLP pipeline.
 
 ## Status: Data Labeling Completed
-The initial data labeling phase using local LLMs (Ollama) has been **successfully completed**. The `severity` labels and associated datasets have been generated and the manual review process is concluded.
+The initial data labeling phase using the Gemini API (`gemini-3.1-flash lite`) has been **successfully completed**. The `severity` labels and associated datasets have been generated and the manual review process is concluded.
 
 ## Data Collection (Current Phase)
 We are now connecting directly to a Supabase PostgreSQL database to fetch the consolidated, labeled data for the next phase of our NLP and EDA pipelines.
@@ -25,9 +25,26 @@ We are now connecting directly to a Supabase PostgreSQL database to fetch the co
    pip install sqlalchemy psycopg2-binary python-dotenv
    ```
 
-3. Test the Database Connection:
+3. Initial Phase: Explore, Clean, and Train (Jupyter Notebook)
 
-   Run the data connection script from the project root:
+   During the initial stage of the project, **all work should be done directly in a Jupyter Notebook** (`notebook/ai_grievance_system.ipynb`). In the notebook, your workflow will be:
+   - Connect to the Supabase SQL database.
+   - Fetch the data using SQL commands.
+   - Analyze, preprocess/clean the data, and train models.
+
+   Make sure to import these core libraries in your notebook to start:
+
+   ```python
+   import pandas as pd
+   import numpy as np
+   from sqlalchemy import create_engine
+   from dotenv import load_dotenv
+   import os
+   ```
+
+4. Final Production Stage (`src/main.py`):
+
+   *Note: The standalone `src/main.py` script comes into play much later when the exploratory project is done and ready for deployment.* Once your notebook analysis is finalized, you can test and transition to the production data connection script from the root:
    ```powershell
    .\.venv\Scripts\python.exe src\main.py
    ```
@@ -61,6 +78,6 @@ ai_grievance_system/
     main.py               Database connection testing and data fetching
 ```
 
-## Historical Context: Local AI Labeling Pipeline
-*For reference, earlier stages of this project relied on a local Ollama setup to generate soft-labels.*
-The labeling pipeline was designed as a checkpointed batch process that read raw complaints from `data/original/Complaints.csv`, labeled them with a local Ollama model (e.g., `llama3.3`), and checkpointed 500-row chunks in `data/processed`. Ambiguous edges were placed in `data/review_bucket` for human alignment. This data is now upstreamed/synchronized to Supabase.
+## Historical Context: AI Labeling Pipeline
+*For reference, earlier stages of this project relied on the Gemini API to generate soft-labels.*
+The labeling pipeline was designed as a checkpointed batch process that read raw complaints from `data/original/Complaints.csv`, labeled them using the `gemini-3.1-flash lite` model, and checkpointed 500-row chunks in `data/processed`. Ambiguous edges were placed in `data/review_bucket` for human alignment. This data is now upstreamed/synchronized to Supabase.
