@@ -1,5 +1,5 @@
 .env
 data
 .vscode
-src/.env
+src\.env
 GitHub Commit and DVC Setup.pdf
