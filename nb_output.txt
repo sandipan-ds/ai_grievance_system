@@ -1,0 +1,155 @@
+--- Cell 1 (Global), Code Cell 1, Exec Count 2 ---
+import numpy as np
+import pandas as pd
+import os
+import glob
+from sqlalchemy import create_engine
+from dotenv import load_dotenv
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+path= os.path.dirname(os.getcwd())
+print(path)
+==================================================
+--- Cell 2 (Global), Code Cell 2, Exec Count 3 ---
+# 1. Load .env (IMPORTANT: use your exact path)
+load_dotenv(
+    dotenv_path=os.path.join(path, "src", ".env"),
+    override=True
+)
+
+# 2. Fetch variables
+USER = os.getenv("user")
+PASSWORD = os.getenv("password")
+HOST = os.getenv("host")
+PORT = os.getenv("port")
+DBNAME = os.getenv("dbname")
+
+# 3. Debug check (remove later if you want)
+print(USER, PASSWORD, HOST, PORT, DBNAME)
+
+# 4. Build connection string
+DATABASE_URL = f"postgresql+psycopg2://{USER}:{PASSWORD}@{HOST}:{PORT}/{DBNAME}?sslmode=require"
+
+print("\nDATABASE_URL:\n", DATABASE_URL)
+
+# 5. Create engine
+engine = create_engine(DATABASE_URL)
+
+# 6. Test connection
+try:
+    with engine.connect() as conn:
+        print("\n✅ Connected successfully!")
+except Exception as e:
+    print(f"\n❌ Connection failed: {e}")
+
+# 7. Fetch sample data
+try:
+    df = pd.read_sql("SELECT * FROM public.bangalore_data LIMIT 5;", engine)
+    print("\nSample Data:")
+    print(df.head())
+except Exception as e:
+    print(f"\n❌ Query failed: {e}")
+==================================================
+--- Cell 4 (Global), Code Cell 3, Exec Count 4 ---
+df = pd.read_sql("SELECT * FROM public.bangalore_data;", engine)
+df.head()
+==================================================
+--- Cell 7 (Global), Code Cell 4, Exec Count 5 ---
+df_null_pct = df.isna().mean() * 100
+df_null_pct
+==================================================
+--- Cell 8 (Global), Code Cell 5, Exec Count 6 ---
+print(f"The total number of rows in the dataframe is {df.shape[0]}")
+==================================================
+--- Cell 9 (Global), Code Cell 6, Exec Count 7 ---
+df.dropna(subset=['description', 'severity'], inplace=True)
+print(f"The total number of rows in the dataframe after removing the null values are {df.shape[0]}")
+==================================================
+--- Cell 10 (Global), Code Cell 7, Exec Count 8 ---
+df.head(1)
+==================================================
+--- Cell 12 (Global), Code Cell 8, Exec Count 9 ---
+df = df.sort_values(by='created_at', ascending=True)
+df.head()
+==================================================
+--- Cell 15 (Global), Code Cell 9, Exec Count 10 ---
+# Ensure 'created_at' is a datetime type so we can extract the year
+df['created_at'] = pd.to_datetime(df['created_at'])
+
+plt.figure(figsize=(10, 6))
+
+# Plot the count of each severity category grouped by year
+sns.countplot(data=df, x=df['created_at'].dt.year, hue='severity')
+
+plt.title('Number of Grievances by Severity per Year')
+plt.xlabel('Year')
+plt.ylabel('Count')
+plt.legend(title='Severity')
+plt.show()
+==================================================
+--- Cell 18 (Global), Code Cell 10, Exec Count 11 ---
+print(f"The total number of civic agnecies mentioned in this complaint dataset is: {df['civic_agency_title'].nunique()}\n")
+df['civic_agency_title'].value_counts()
+==================================================
+--- Cell 20 (Global), Code Cell 11, Exec Count 12 ---
+df_BBMP = df[
+    (df['civic_agency_title'] == 'BBMP') |
+    (df['civic_agency_title'] == 'Bruhat Bengaluru Mahanagara Palike')
+]
+
+print(f"The total number of categories mentioned in this complaint dataset is: {df_BBMP['category_title'].nunique()}\n")
+
+# Value counts of category
+df_BBMP['category_title'].value_counts()
+==================================================
+--- Cell 22 (Global), Code Cell 12, Exec Count 13 ---
+df_BBMP = df[
+    (df['civic_agency_title'] == 'BBMP') |
+    (df['civic_agency_title'] == 'Bruhat Bengaluru Mahanagara Palike')
+]
+
+print(f"The total number of categories mentioned in this complaint dataset is: {df_BBMP['sub_category_title'].nunique()}\n")
+
+df['sub_category_title'].value_counts()
+
+==================================================
+--- Cell 25 (Global), Code Cell 13, Exec Count 14 ---
+# 1. Set up the mapping dictionary for the 5 duplicates
+agency_mapping = {
+    "Bruhat Bengaluru Mahanagara Palike": "BBMP",
+    "Bangalore Traffic Police": "BTP",
+    "Bangalore Water Supply And Sewerage Board": "BWSSB",
+    "Karnataka State Pollution Control Board": "KSPCB",
+    "Bangalore Electricity Supply Company": "BESCOM"
+}
+
+# 2. Replace the long names with the short acronyms in your column
+df['civic_agency_title'] = df['civic_agency_title'].replace(agency_mapping)
+
+# 3. Recalculate teh numbers
+print(f"The number of civic agnecies is : {df['civic_agency_title'].nunique()}\n")
+
+# 3. Recalculate your counts to see the cleaned up, deduplicated list
+clean_counts = df['civic_agency_title'].value_counts()
+
+print(clean_counts)
+==================================================
+--- Cell 27 (Global), Code Cell 14, Exec Count 15 ---
+# Map the smaller categories into their new merged groups
+consolidation_mapping = {
+    "BDA": "BBMP",
+    "BMTC": "Transport",
+    "KSRTC": "Transport"
+}
+
+# Apply the mapping to update the column
+df['civic_agency_title'] = df['civic_agency_title'].replace(consolidation_mapping)
+
+# Check the final grouped counts
+final_counts = df['civic_agency_title'].value_counts()
+print(final_counts)
+==================================================
+--- Cell 28 (Global), Code Cell 15, Exec Count None ---
+# df.to_csv(os.path.join(path, "data", "labeled_data_processed.csv"))
+==================================================
