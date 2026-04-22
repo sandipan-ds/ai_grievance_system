@@ -1,0 +1,17 @@
+{
+    "model": "linearsvc",
+    "best_params": {
+        "clf__C": 0.1,
+        "tfidf__max_features": 5000,
+        "tfidf__ngram_range": [
+            1,
+            2
+        ]
+    },
+    "metrics": {
+        "f1_macro": 0.7744911711927143,
+        "accuracy": 0.9041527735677478,
+        "precision": 0.753406841496055,
+        "recall": 0.803819771359455
+    }
+}
