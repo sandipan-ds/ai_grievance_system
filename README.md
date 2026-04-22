@@ -54,12 +54,37 @@ We are now connecting directly to a Supabase PostgreSQL database to fetch the co
    Connection successful!
    ```
 
+## Exploratory Data Analysis (EDA) & Preprocessing
+
+The exploratory data analysis and data preprocessing phase is currently implemented in `notebook/ai_grievance_system.ipynb`. Key steps include:
+- **Data Cleaning:** Discarding null values in critical features such as `description` and `severity`, and sorting records chronologically to track data drift.
+- **Trend Analysis:** Comparing complaints over the years across severity categories. Key insights reveal that 'Medium' and 'High' severity incidents account for the majority of the volume.
+- **Entity Standardization:** Standardizing civic agency names to prevent fragmentation (e.g., merging acronyms and full names for `BBMP`, `BTP`, `BWSSB`, `KSPCB`, and `BESCOM`).
+- **Category Consolidation:** Grouping low-frequency entries to address class imbalance, such as merging `BDA` into `BBMP` and consolidating `BMTC` and `KSRTC` under a general "Transport" category.
+
+## Model Training Pipeline
+
+Following preprocessing, the notebook features a robust model training loop to automate severity scoring and department routing. The pipeline evaluates the following models:
+1. **Logistic Regression**
+2. **Linear Support Vector Classifier (LinearSVC)**
+3. **Random Forest Classifier**
+
+Models are trained iteratively using the processed textual data from the Supabase PostgreSQL database.
+
+### Model Performance Metrics
+
+Based on the cross-validation evaluation metrics tracked during the training phase, **LinearSVC** currently yields the best overall balance (highest Accuracy and Macro F1) for severity classification.
+
+| Model | Accuracy | Macro F1 | Precision | Recall |
+| :--- | :--- | :--- | :--- | :--- |
+| **LinearSVC** | 90.41% | 0.774 | 0.753 | 0.803 |
+| **Random Forest Classifier** | 89.60% | 0.734 | 0.824 | 0.683 |
+| **Logistic Regression** | 89.12% | 0.762 | 0.726 | 0.809 |
+
 ## Next Steps in Pipeline
 
-With database connectivity established and labeling completed, the next phases cover:
-- **Text Preprocessing & EDA:** Using the newly integrated PostgreSQL data pool to perform extensive NLP analyses.
-- **Model Training:** Training supervised models for automated severity scoring and department routing.
-- **FastAPI Layer:** Serving the models.
+With EDA and initial training phases underway, the forthcoming goals include:
+- **FastAPI Layer:** Serving the finalized models via API endpoints for seamless system integration.
 
 ---
 
@@ -67,15 +92,21 @@ With database connectivity established and labeling completed, the next phases c
 
 ```text
 ai_grievance_system/
-  data/
-    original/             (Archived raw CSVs prior to labeling)
-    processed/            (Completed labeled chunk files)
-    review_bucket/        (Completed manual review CSVs)
+  data/                   Dataset files
+    augmented_combined.csv
   docs/                   Documentation
-  notebook/               Jupyter notebooks for EDA
-  src/
+  metrics/                Model evaluation metrics and results
+    bert_base/
+    linearsvc/
+    logistic_regression/
+    random_forest/
+  notebook/               Jupyter notebooks for EDA and modeling
+    ai_grievance_system.ipynb
+  src/                    Source code and scripts
     .env                  Supabase credentials
+    .env.example          Example credentials file
     main.py               Database connection testing and data fetching
+  theory/                 Project references and theoretical docs
 ```
 
 ## Historical Context: AI Labeling Pipeline
