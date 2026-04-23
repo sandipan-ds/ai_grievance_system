@@ -3,3 +3,11 @@
 src/.env
 GitHub Commit and DVC Setup.pdf
 theory
+# DVC local storage
+dvc_storage/
+
+# NLTK local data
+data/nltk/
+
+# optional raw data
+data/augmented_combined.csv
