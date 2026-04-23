@@ -1,0 +1,5 @@
+outs:
+- md5: 2843435c044faa2382ba87c6c5784d11
+  size: 517309
+  hash: md5
+  path: linearsvc_v1.joblib
