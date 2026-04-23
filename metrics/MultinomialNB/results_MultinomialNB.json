@@ -1,0 +1,17 @@
+{
+    "model": "MultinomialNB",
+    "best_params": {
+        "clf__alpha": 0.1,
+        "tfidf__max_features": 3000,
+        "tfidf__ngram_range": [
+            1,
+            1
+        ]
+    },
+    "metrics": {
+        "f1_macro": 0.7369081619264686,
+        "accuracy": 0.8964534707487118,
+        "precision": 0.8579878739553022,
+        "recall": 0.6583974641457682
+    }
+}
