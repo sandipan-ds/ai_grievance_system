@@ -1,1 +1,5 @@
-/linearsvc_v1.joblib
+*.joblib
+*.pkl
+*.h5
+*.pt
+*.bin

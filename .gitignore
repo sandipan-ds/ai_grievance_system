@@ -3,6 +3,8 @@
 src/.env
 GitHub Commit and DVC Setup.pdf
 theory
+data/processed/*
+!data/processed/*.dvc
 # DVC local storage
 dvc_storage/
 
@@ -11,3 +13,16 @@ data/nltk/
 
 # optional raw data
 data/augmented_combined.csv
+
+*.joblib
+*.pkl
+*.h5
+*.pt
+*.bin
+
+# Large Data Files
+*.joblib
+dvc_storage/
+.dvc/cache/
+.dvc/tmp/
+data/processed/

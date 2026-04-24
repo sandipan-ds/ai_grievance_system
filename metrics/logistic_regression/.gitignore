@@ -1,1 +1,6 @@
 /logistic_regression_v4.joblib
+*.joblib
+*.pkl
+*.h5
+*.pt
+*.bin
