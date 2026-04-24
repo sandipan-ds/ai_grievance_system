@@ -2,6 +2,7 @@ numpy
 pandas
 matplotlib
 seaborn
+streamlit
 NLTK
 spaCy
 Scikit-Learn

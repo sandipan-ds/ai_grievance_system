@@ -1,5 +1,7 @@
-*.joblib
-*.pkl
-*.h5
-*.pt
-*.bin
+*
+!.gitignore
+!*.json
+!*.png
+!*.jpg
+!*.jpeg
+!*.dvc
