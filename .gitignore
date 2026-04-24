@@ -3,7 +3,8 @@
 src/.env
 GitHub Commit and DVC Setup.pdf
 theory
-data/processed
+data/processed/*
+!data/processed/*.dvc
 # DVC local storage
 dvc_storage/
 

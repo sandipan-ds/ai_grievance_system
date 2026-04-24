@@ -1,0 +1,5 @@
+*.joblib
+*.pkl
+*.h5
+*.pt
+*.bin
