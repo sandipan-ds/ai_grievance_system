@@ -1,79 +1,108 @@
 # AI Grievance System
 
-Project 1: AI-driven citizen grievance severity labeling and NLP pipeline.
+Project 1: a multi-output, multiclass NLP system for citizen grievance handling.
 
-## Status: Data Labeling Completed
-The initial data labeling phase using the Gemini API (`gemini-3.1-flash lite`) has been **successfully completed**. The `severity` labels and associated datasets have been generated and the manual review process is concluded.
+The project takes a complaint `description` as input and aims to:
 
-## Data Collection (Current Phase)
-We are now connecting directly to a Supabase PostgreSQL database to fetch the consolidated, labeled data for the next phase of our NLP and EDA pipelines.
+- route the complaint to the correct civic authority
+- assign the correct severity class
 
-### Setup Database Connection
+The currently implemented pipeline focuses on the **authority-routing model**. Severity labeling is part of the broader project goal and earlier labeling work has already been completed upstream.
 
-1. Provide your connection details. The project expects a `.env` file in the `src/` directory with your Supabase credentials:
+## Project Status
 
-   ```env
-   user=postgres
-   password=your_supabase_password
-   host=db.your_project_ref.supabase.co
-   port=5432
-   dbname=postgres
-   ```
+- Initial data labeling has been completed using the Gemini API.
+- Complaint data is now consolidated in Supabase PostgreSQL.
+- The notebook pipeline covers EDA, preprocessing, augmentation, cross-validation, and model training.
+- Final model artifacts are saved as `joblib` files and tracked with DVC.
 
-2. Please ensure you have the required dependencies for database connectivity. If missing, install them:
-   ```powershell
-   pip install sqlalchemy psycopg2-binary python-dotenv
-   ```
+## Workflow Overview
 
-3. Initial Phase: Explore, Clean, and Train (Jupyter Notebook)
+### 1. Data Collection
 
-   During the initial stage of the project, **all work should be done directly in a Jupyter Notebook** (`notebook/ai_grievance_system.ipynb`). In the notebook, your workflow will be:
-   - Connect to the Supabase SQL database.
-   - Fetch the data using SQL commands.
-   - Analyze, preprocess/clean the data, and train models.
+The notebook connects to Supabase PostgreSQL and loads the complaint dataset for analysis and modeling.
 
-   Make sure to import these core libraries in your notebook to start:
+### 2. Data Cleaning
 
-   ```python
-   import pandas as pd
-   import numpy as np
-   from sqlalchemy import create_engine
-   from dotenv import load_dotenv
-   import os
-   ```
+The raw data is cleaned before training:
 
-4. Final Production Stage (`src/main.py`):
+- remove null rows from key fields such as `description` and target columns
+- remove duplicates
+- standardize date fields for time-based analysis
 
-   *Note: The standalone `src/main.py` script comes into play much later when the exploratory project is done and ready for deployment.* Once your notebook analysis is finalized, you can test and transition to the production data connection script from the root:
-   ```powershell
-   .\.venv\Scripts\python.exe src\main.py
-   ```
+### 3. Exploratory Data Analysis
 
-   If successful, you should see:
-   ```text
-   Connection successful!
-   ```
+The notebook explores the dataset to understand complaint patterns and class imbalance:
 
-## Exploratory Data Analysis (EDA) & Preprocessing
+- complaint volume over time
+- distribution across severity classes
+- distribution across civic agencies, categories, and sub-categories
+- complaint concentration in major authorities and rare classes
 
-The exploratory data analysis and data preprocessing phase is currently implemented in `notebook/ai_grievance_system.ipynb`. Key steps include:
-- **Data Cleaning:** Discarding null values in critical features such as `description` and `severity`, and sorting records chronologically to track data drift.
-- **Trend Analysis:** Comparing complaints over the years across severity categories. Key insights reveal that 'Medium' and 'High' severity incidents account for the majority of the volume.
-- **Entity Standardization:** Standardizing civic agency names to prevent fragmentation (e.g., merging acronyms and full names for `BBMP`, `BTP`, `BWSSB`, `KSPCB`, and `BESCOM`).
-- **Category Consolidation:** Grouping low-frequency entries to address class imbalance, such as merging `BDA` into `BBMP` and consolidating `BMTC` and `KSRTC` under a general "Transport" category.
+### 4. Text Preprocessing
 
-## Model Training Pipeline
+Complaint text is normalized using a standard NLP cleaning pipeline:
 
-Following preprocessing, the notebook features a robust model training loop to automate severity scoring and department routing. The pipeline evaluates the following models:
-1. **Logistic Regression**
-2. **Linear Support Vector Classifier (LinearSVC)**
-3. **Random Forest Classifier**
+- lowercase conversion
+- URL removal
+- special character and non-letter removal
+- stopword removal
+- lemmatization
 
-Models are trained iteratively using the processed textual data from the Supabase PostgreSQL database.
+### 5. Agency Standardization and Consolidation
 
-### Model Performance Metrics
+To reduce label fragmentation, civic agency names are standardized and low-frequency groups are merged where appropriate.
 
-Based on the cross-validation evaluation metrics tracked during the training phase, **LinearSVC** currently yields the best overall balance (highest Accuracy and Macro F1) for severity classification.
+Examples:
+
+- `Bruhat Bengaluru Mahanagara Palike` -> `BBMP`
+- `Bangalore Traffic Police` -> `BTP`
+- `BDA` -> `BBMP`
+- `BMTC` and `KSRTC` -> `Transport`
+
+### 6. Data Augmentation
+
+To reduce class imbalance, complaint text is augmented based on sample frequency:
+
+- low-frequency classes receive more augmentation
+- higher-frequency classes receive less augmentation
+
+The augmentation strategy includes synonym replacement, spelling perturbation, and word-level shuffling.
+
+### 7. Cross-Validation and Hyperparameter Search
+
+Hyperparameters are selected using 5-fold cross-validation.
+
+The process is:
+
+- split the preprocessed dataset into 5 folds
+- use 4 folds for training
+- augment only the training folds
+- validate on the untouched original fold
+
+This approach reduces repeated preprocessing, keeps validation data clean, and gives a more realistic estimate of model performance.
+
+### 8. Model Training
+
+The notebook trains multiple classical text classifiers using a TF-IDF pipeline:
+
+1. Logistic Regression
+2. LinearSVC
+3. Random Forest Classifier
+
+The best hyperparameters are saved into the `metrics/` folder, and the final model is trained from those tuned settings.
+
+### 9. Artifact Storage
+
+The project stores:
+
+- trained model files as `joblib`
+- tuning results and evaluation summaries in `metrics/`
+- versioned data and model artifacts with DVC
+
+## Best Performing Model
+
+Based on the tracked cross-validation results, `LinearSVC` provides the best overall balance of accuracy and macro F1 for the current authority-routing task.
 
 | Model | Accuracy | Macro F1 | Precision | Recall |
 | :--- | :--- | :--- | :--- | :--- |
@@ -81,34 +110,64 @@ Based on the cross-validation evaluation metrics tracked during the training pha
 | **Random Forest Classifier** | 89.60% | 0.734 | 0.824 | 0.683 |
 | **Logistic Regression** | 89.12% | 0.762 | 0.726 | 0.809 |
 
-## Next Steps in Pipeline
+## Notebook
 
-With EDA and initial training phases underway, the forthcoming goals include:
-- **FastAPI Layer:** Serving the finalized models via API endpoints for seamless system integration.
+The main exploratory and modeling work lives in:
 
----
+- `notebook/ai_grievance_system.ipynb`
+
+That notebook contains:
+
+- database access
+- EDA
+- preprocessing
+- augmentation
+- cross-validation
+- model training
+- metrics generation
+
+## Database Setup
+
+Create a `src/.env` file with your Supabase credentials:
+
+```env
+user=postgres
+password=your_supabase_password
+host=db.your_project_ref.supabase.co
+port=5432
+dbname=postgres
+```
+
+Install the required packages if needed:
+
+```powershell
+pip install sqlalchemy psycopg2-binary python-dotenv
+```
+
+To test the production connection script:
+
+```powershell
+.\.venv\Scripts\python.exe src\main.py
+```
+
+If the connection is correct, it should print:
+
+```text
+Connection successful!
+```
 
 ## Folder Structure
 
 ```text
 ai_grievance_system/
-  data/                   Dataset files
-    augmented_combined.csv
-  docs/                   Documentation
-  metrics/                Model evaluation metrics and results
-    bert_base/
-    linearsvc/
-    logistic_regression/
-    random_forest/
-  notebook/               Jupyter notebooks for EDA and modeling
-    ai_grievance_system.ipynb
-  src/                    Source code and scripts
-    .env                  Supabase credentials
-    .env.example          Example credentials file
-    main.py               Database connection testing and data fetching
-  theory/                 Project references and theoretical docs
+  data/                   Dataset files and processed artifacts
+  docs/                   Documentation and project notes
+  metrics/                Model metrics, confusion matrices, and saved models
+  notebook/               EDA and training notebook
+  src/                    Source code, database connection, and env files
+  theory/                 Supporting references and theory notes
 ```
 
-## Historical Context: AI Labeling Pipeline
-*For reference, earlier stages of this project relied on the Gemini API to generate soft-labels.*
-The labeling pipeline was designed as a checkpointed batch process that read raw complaints from `data/original/Complaints.csv`, labeled them using the `gemini-3.1-flash lite` model, and checkpointed 500-row chunks in `data/processed`. Ambiguous edges were placed in `data/review_bucket` for human alignment. This data is now upstreamed/synchronized to Supabase.
+## Historical Context
+
+Earlier stages of the project used the Gemini API to generate severity labels from raw complaint data. That labeling pipeline ran in checkpointed batches, wrote processed outputs incrementally, and sent ambiguous cases for review. The consolidated labeled data now feeds the Supabase-backed workflow used in the notebook.

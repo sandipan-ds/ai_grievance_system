@@ -1,21 +1,28 @@
+# Local environment and editor files
 .env
-.vscode
 src/.env
+.vscode/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.streamlit/
 GitHub Commit and DVC Setup.pdf
-theory
-data/processed/*
-!data/processed/*.dvc
-# DVC local storage
-dvc_storage/
 
-# NLTK local data
+# Local data and cache artifacts
+dvc_storage/
+.dvc/cache/
+.dvc/tmp/
 data/nltk/
 
-# optional raw data
-data/augmented_combined.csv
-
+# Large data/model artifacts are managed by DVC
 *.joblib
 *.pkl
 *.h5
 *.pt
 *.bin
+*.csv
+
+# Keep processed data out of Git, but preserve DVC pointers
+data/processed/*
+!data/processed/.gitignore
+!data/processed/*.dvc
