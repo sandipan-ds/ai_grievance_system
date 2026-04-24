@@ -2,6 +2,19 @@
 
 Project 1: a multi-output, multiclass NLP system for citizen grievance handling.
 
+## Quick Start
+
+```powershell
+pip install -r requirements.txt
+streamlit run streamlit.py
+```
+
+Optional database connection test:
+
+```powershell
+.\.venv\Scripts\python.exe src\main.py
+```
+
 The project takes a complaint `description` as input and aims to:
 
 - route the complaint to the correct civic authority
@@ -15,6 +28,53 @@ The currently implemented pipeline focuses on the **authority-routing model**. S
 - Complaint data is now consolidated in Supabase PostgreSQL.
 - The notebook pipeline covers EDA, preprocessing, augmentation, cross-validation, and model training.
 - Final model artifacts are saved as `joblib` files and tracked with DVC.
+
+## How To Use
+
+### 1. Set up the environment
+
+Install the project dependencies:
+
+```powershell
+pip install -r requirements.txt
+```
+
+Create `src/.env` with your Supabase credentials:
+
+```env
+user=postgres
+password=your_supabase_password
+host=db.your_project_ref.supabase.co
+port=5432
+dbname=postgres
+```
+
+### 2. Run the data / model notebook
+
+Open and run:
+
+- `notebook/ai_grievance_system.ipynb`
+
+This notebook is where the data loading, preprocessing, augmentation, cross-validation, tuning, and model training logic lives.
+
+### 3. Launch the Streamlit app
+
+Run the interactive app from the project root:
+
+```powershell
+streamlit run streamlit.py
+```
+
+The app lets you:
+
+- type a new complaint and get a predicted civic department
+- look up a complaint by dataset row number
+- compare predictions across the saved LinearSVC, Logistic Regression, and Random Forest models
+
+### 4. Optional production connection test
+
+If you want to test the database connection script:
+If the connection is correct, it should print `Connection successful!`.
 
 ## Workflow Overview
 
@@ -126,35 +186,18 @@ That notebook contains:
 - model training
 - metrics generation
 
-## Database Setup
+## Streamlit App
 
-Create a `src/.env` file with your Supabase credentials:
+The interactive UI is in:
 
-```env
-user=postgres
-password=your_supabase_password
-host=db.your_project_ref.supabase.co
-port=5432
-dbname=postgres
-```
+- `streamlit.py`
 
-Install the required packages if needed:
+It provides two workflows:
 
-```powershell
-pip install sqlalchemy psycopg2-binary python-dotenv
-```
+- **New Complaint Testing** for typing a fresh complaint and viewing predictions
+- **Dataset Complaint Lookup** for inspecting an existing complaint row and comparing the actual department with model predictions
 
-To test the production connection script:
-
-```powershell
-.\.venv\Scripts\python.exe src\main.py
-```
-
-If the connection is correct, it should print:
-
-```text
-Connection successful!
-```
+The app uses the saved `.joblib` model artifacts in `metrics/` and the processed complaint data from `data/`. It loads the latest saved model bundle for each algorithm automatically.
 
 ## Folder Structure
 
@@ -166,6 +209,7 @@ ai_grievance_system/
   notebook/               EDA and training notebook
   src/                    Source code, database connection, and env files
   theory/                 Supporting references and theory notes
+  streamlit.py            Streamlit application entrypoint
 ```
 
 ## Historical Context

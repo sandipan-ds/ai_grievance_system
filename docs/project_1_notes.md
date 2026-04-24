@@ -1,6 +1,6 @@
 ## Project 1 Notes for Collaborators
 
-These notes are meant to keep the team aligned on branch hygiene, local setup, and database access.
+These notes are meant to keep the team aligned on branch hygiene, local setup, notebook usage, and the Streamlit app.
 
 ## 1. Getting Started
 
@@ -20,6 +20,16 @@ git checkout -b feature/<your-name>
 ```
 
 Use a clear branch name that reflects your work.
+
+## 1.1 Important Run Commands
+
+```powershell
+pip install -r requirements.txt
+streamlit run streamlit.py
+.\.venv\Scripts\python.exe src\main.py
+```
+
+Use the Streamlit command for the app, and the Python command for a database connection check.
 
 ## 2. Day-to-Day Workflow
 
@@ -74,10 +84,34 @@ port=5432
 dbname=postgres
 ```
 
-## 6. Notes for the Notebook Pipeline
+## 6. How To Use the Project
+
+Install the dependencies:
+
+```powershell
+pip install -r requirements.txt
+```
+
+Then follow the main working flow:
+
+1. Use `notebook/ai_grievance_system.ipynb` for exploration, preprocessing, augmentation, cross-validation, and model training.
+2. Use the saved `joblib` model artifacts under `metrics/` for inference.
+3. Run the Streamlit app with:
+
+```powershell
+streamlit run streamlit.py
+```
+
+The Streamlit app supports:
+
+- typing a new complaint and getting a predicted civic department
+- checking an existing dataset row by row number
+- comparing predictions across LinearSVC, Logistic Regression, and Random Forest
+
+## 7. Notes for the Notebook Pipeline
 
 Most of the exploratory work, preprocessing, augmentation, cross-validation, and model training lives in:
 
 - `notebook/ai_grievance_system.ipynb`
 
-Use the notebook for experimentation first, then move stable logic into `src/` when the workflow is ready for production-style use.
+Use the notebook for experimentation first, then move stable logic into `src/` or `streamlit.py` when the workflow is ready for production-style use.
