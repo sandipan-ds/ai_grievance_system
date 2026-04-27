@@ -1,6 +1,8 @@
 # Local environment and editor files
 .env
 src/.env
+.venv/
+.history/
 .vscode/
 __pycache__/
 *.pyc
@@ -19,8 +21,12 @@ data/nltk/
 *.pkl
 *.h5
 *.pt
+*.pth
 *.bin
 *.csv
+*.safetensors
+
+notebook/results_fold_*/
 
 # Keep processed data out of Git, but preserve DVC pointers
 data/processed/*
