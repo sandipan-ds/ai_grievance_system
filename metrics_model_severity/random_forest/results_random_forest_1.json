@@ -1,0 +1,20 @@
+{
+    "version": 1,
+    "model": "random_forest",
+    "best_params": {
+        "clf__max_depth": null,
+        "clf__min_samples_split": 5,
+        "clf__n_estimators": 200,
+        "tfidf__max_features": 1000,
+        "tfidf__ngram_range": [
+            1,
+            1
+        ]
+    },
+    "metrics": {
+        "f1_macro": 0.6389523706918279,
+        "accuracy": 0.7504092149136102,
+        "precision": 0.7404813812717242,
+        "recall": 0.5927386196232549
+    }
+}
