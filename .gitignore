@@ -9,6 +9,8 @@ __pycache__/
 .ipynb_checkpoints/
 .streamlit/
 GitHub Commit and DVC Setup.pdf
+checkpoints/
+theory/
 
 # Local data and cache artifacts
 dvc_storage/
