@@ -199,6 +199,8 @@ It provides two workflows:
 
 The app uses the saved `.joblib` model artifacts in `metrics/` and the processed complaint data from `data/`. It loads the latest saved model bundle for each algorithm automatically.
 
+The dataset used for inference is expected to be available as `data/augmented_combined.csv`, with `description` as the complaint text input and `civic_agency_title` as the target department label.
+
 ## Folder Structure
 
 ```text
