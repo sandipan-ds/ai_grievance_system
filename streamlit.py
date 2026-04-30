@@ -10,6 +10,8 @@ import pandas as pd
 import nltk
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
+import torch
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 # Avoid shadowing the Streamlit package with this file name.
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -44,6 +46,11 @@ MODEL_OPTIONS = [
     "Logistic Regression",
     "Random Forest",
     "All",
+]
+
+SEVERITY_MODEL_CANDIDATES = [
+    PROJECT_ROOT / "metrics_model_severity" / "production",
+    PROJECT_ROOT / "metrics_model_severity" / "distilbert" / "production_model",
 ]
 
 LOOKUP_MAX_ROW = 17145
@@ -103,6 +110,16 @@ def _latest_joblib_file(model_dir: Path) -> Path:
     return sorted(files, key=version_key)[-1]
 
 
+def _resolve_severity_model_dir() -> Path:
+    for candidate in SEVERITY_MODEL_CANDIDATES:
+        if candidate.exists():
+            return candidate
+    raise FileNotFoundError(
+        "Could not find a severity model directory. Checked: "
+        + ", ".join(str(path) for path in SEVERITY_MODEL_CANDIDATES)
+    )
+
+
 @st.cache_resource(show_spinner=False)
 def load_model_bundle(model_name: str):
     model_dir = MODEL_REGISTRY[model_name]
@@ -117,7 +134,7 @@ def load_model_bundle(model_name: str):
 def load_dataset() -> pd.DataFrame:
     df = pd.read_csv(
         DATA_DIR / "augmented_combined.csv",
-        usecols=["description", "civic_agency_title"],
+        usecols=["description", "civic_agency_title", "severity"],
     )
     return df
 
@@ -138,26 +155,76 @@ def predict_all_models(raw_text: str) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def render_prediction_area(raw_text: str, selected_model: str, include_actual: bool = False, actual_label: str | None = None) -> None:
-    predictions = predict_all_models(raw_text) if selected_model == "All" else pd.DataFrame(
-        [{"Model": selected_model, "Predicted Department": predict_with_model(selected_model, raw_text)}]
-    )
+@st.cache_resource(show_spinner=False)
+def load_severity_bundle():
+    model_dir = _resolve_severity_model_dir()
+    tokenizer = AutoTokenizer.from_pretrained(model_dir)
+    model = AutoModelForSequenceClassification.from_pretrained(model_dir)
+    label_encoder = joblib.load(model_dir / "label_encoder.joblib")
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model.to(device)
+    model.eval()
+    return model, tokenizer, label_encoder, device, model_dir
 
-    st.markdown("### Output")
 
-    if include_actual and actual_label is not None:
-        st.markdown(f"**Actual department:** {actual_label}")
+def predict_severity(raw_text: str) -> str:
+    model, tokenizer, label_encoder, device, _ = load_severity_bundle()
+    cleaned = preprocess_text(raw_text)
+    if not cleaned.strip():
+        raise ValueError("Complaint text is empty after preprocessing.")
 
-    if selected_model == "All":
-        st.dataframe(predictions, use_container_width=True)
-        unique_predictions = predictions["Predicted Department"].nunique()
-        if unique_predictions == 1:
-            st.success(f"All models agree on: {predictions['Predicted Department'].iloc[0]}")
+    inputs = tokenizer(
+        cleaned,
+        return_tensors="pt",
+        truncation=True,
+        max_length=256,
+    ).to(device)
+
+    with torch.inference_mode():
+        outputs = model(**inputs)
+
+    predicted_class_id = torch.argmax(outputs.logits, dim=-1).item()
+    return str(label_encoder.inverse_transform([predicted_class_id])[0])
+
+
+def render_prediction_pair(
+    raw_text: str,
+    selected_model: str,
+    include_actual: bool = False,
+    actual_label: str | None = None,
+    actual_severity: str | None = None,
+) -> None:
+    dept_col, sev_col = st.columns(2)
+
+    with dept_col:
+        st.markdown("### Civic Authority")
+
+        predictions = predict_all_models(raw_text) if selected_model == "All" else pd.DataFrame(
+            [{"Model": selected_model, "Predicted Department": predict_with_model(selected_model, raw_text)}]
+        )
+
+        if include_actual and actual_label is not None:
+            st.markdown(f"**Actual department:** {actual_label}")
+
+        if selected_model == "All":
+            st.dataframe(predictions, use_container_width=True)
+            unique_predictions = predictions["Predicted Department"].nunique()
+            if unique_predictions == 1:
+                st.success(f"All models agree on: {predictions['Predicted Department'].iloc[0]}")
+            else:
+                st.info("The models do not fully agree. Use the table above to compare predictions.")
         else:
-            st.info("The models do not fully agree. Use the table above to compare predictions.")
-    else:
-        prediction = predictions["Predicted Department"].iloc[0]
-        st.success(f"Predicted department: {prediction}")
+            prediction = predictions["Predicted Department"].iloc[0]
+            st.success(f"Predicted department: {prediction}")
+
+    with sev_col:
+        st.markdown("### Severity")
+
+        if include_actual and actual_severity is not None:
+            st.markdown(f"**Actual severity:** {actual_severity}")
+
+        predicted_severity = predict_severity(raw_text)
+        st.success(f"Predicted severity: {predicted_severity}")
 
 
 def render_model_details() -> None:
@@ -166,6 +233,7 @@ def render_model_details() -> None:
         for model_name in MODEL_REGISTRY:
             _, model_path = load_model_bundle(model_name)
             st.write(f"{model_name}: {model_path.name}")
+        st.write(f"Severity model: {_resolve_severity_model_dir().name}")
         st.caption("Text preprocessing: lowercase, URL removal, stopword removal, lemmatization.")
         st.caption("Dataset lookup range: 0 to 17145.")
 
@@ -223,7 +291,7 @@ def main() -> None:
             if not complaint_text.strip():
                 st.warning("Please enter a complaint before predicting.")
             else:
-                render_prediction_area(complaint_text, selected_model)
+                render_prediction_pair(complaint_text, selected_model)
 
     with tab_dataset:
         st.subheader("Dataset Complaint Lookup")
@@ -247,16 +315,18 @@ def main() -> None:
             else:
                 row = dataset.iloc[int(row_number)]
                 complaint_text = str(row["description"])
-                actual_label = str(row["civic_agency_title"])
+                actual_label = str(row["civic_agency_title"]) if pd.notna(row["civic_agency_title"]) else "N/A"
+                actual_severity = str(row["severity"]) if pd.notna(row["severity"]) else "N/A"
 
                 st.markdown("### Complaint Text")
                 st.text_area("description", value=complaint_text, height=240, disabled=True)
 
-                render_prediction_area(
+                render_prediction_pair(
                     complaint_text,
                     selected_model_ds,
                     include_actual=True,
                     actual_label=actual_label,
+                    actual_severity=actual_severity,
                 )
 
 
