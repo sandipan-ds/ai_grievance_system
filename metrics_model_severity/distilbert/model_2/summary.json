@@ -1,0 +1,30 @@
+{
+    "mean": {
+        "loss": 0.3,
+        "accuracy": 0.76,
+        "f1_macro": 0.72,
+        "f1_micro": 0.76,
+        "f1_weighted": 0.76,
+        "precision_weighted": 0.78,
+        "recall_weighted": 0.76,
+        "runtime": 52.51,
+        "samples_per_second": 67.69,
+        "steps_per_second": 33.86,
+        "epoch": 3.0,
+        "fold": 2.0
+    },
+    "std": {
+        "loss": 0.02,
+        "accuracy": 0.01,
+        "f1_macro": 0.01,
+        "f1_micro": 0.01,
+        "f1_weighted": 0.01,
+        "precision_weighted": 0.01,
+        "recall_weighted": 0.01,
+        "runtime": 18.76,
+        "samples_per_second": 17.23,
+        "steps_per_second": 8.62,
+        "epoch": 0.0,
+        "fold": 1.58
+    }
+}
