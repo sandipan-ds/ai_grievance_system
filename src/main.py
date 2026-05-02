@@ -1,32 +1,61 @@
-from sqlalchemy import create_engine
-# from sqlalchemy.pool import NullPool
-from dotenv import load_dotenv
-import os
+from __future__ import annotations
 
-# Load environment variables from .env
-load_dotenv()
+from contextlib import asynccontextmanager
 
-# Fetch variables
-USER = os.getenv("user")
-PASSWORD = os.getenv("password")
-HOST = os.getenv("host")
-PORT = os.getenv("port")
-DBNAME = os.getenv("dbname")
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 
-# Construct the SQLAlchemy connection string
-DATABASE_URL = f"postgresql+psycopg2://{USER}:{PASSWORD}@{HOST}:{PORT}/{DBNAME}?sslmode=require"
-
-# Create the SQLAlchemy engine
-engine = create_engine(DATABASE_URL)
-# If using Transaction Pooler or Session Pooler, we want to ensure we disable SQLAlchemy client side pooling -
-# https://docs.sqlalchemy.org/en/20/core/pooling.html#switching-pool-implementations
-# engine = create_engine(DATABASE_URL, poolclass=NullPool)
-
-# Test the connection
-try:
-    with engine.connect() as connection:
-        print("Connection successful!")
-except Exception as e:
-    print(f"Failed to connect: {e}")
+from src.db.postgres import create_postgres_engine, test_connection
+from src.logger.logger import append_prediction_log
+from src.ml.model_loader import ModelBundle, load_model_bundle
+from src.ml.predictor import predict_complaint
+from src.schemas.schemas import PredictionRequest, PredictionResponse
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    app.state.models = load_model_bundle()
+
+    try:
+        app.state.db_engine = create_postgres_engine()
+        app.state.db_connected = test_connection(app.state.db_engine)
+    except Exception:
+        app.state.db_engine = None
+        app.state.db_connected = False
+
+    yield
+
+
+app = FastAPI(
+    title="AI Grievance System API",
+    version="v1.0",
+    docs_url="/docs",
+    lifespan=lifespan,
+)
+
+
+@app.post("/predict", response_model=PredictionResponse)
+async def predict(
+    payload: PredictionRequest,
+    request: Request,
+    background_tasks: BackgroundTasks,
+) -> PredictionResponse:
+    try:
+        models: ModelBundle = request.app.state.models
+        predicted_department, severity = predict_complaint(models, payload.complaint)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="Prediction failed.") from exc
+
+    background_tasks.add_task(
+        append_prediction_log,
+        complaint=payload.complaint,
+        predicted_department=predicted_department,
+        severity=severity,
+        model_version="v1.0",
+    )
+
+    return PredictionResponse(
+        predicted_department=predicted_department,
+        severity=severity,
+    )
