@@ -94,8 +94,8 @@ pip install -r requirements.txt
 
 Then follow the main working flow:
 
-1. Use `notebook/ai_grievance_system.ipynb` for exploration, preprocessing, augmentation, cross-validation, and model training.
-2. Use the saved `joblib` model artifacts under `metrics/` for inference.
+1. Use `notebook/ai_grievance_system.ipynb` for exploration, preprocessing, augmentation, cross-validation, and model training (both Authority Routing ML models and Severity Classification Deep Learning models).
+2. Use the saved `joblib` model artifacts under `metrics/` (Authority Routing) and the `.pt` PyTorch models under `metrics_model_severity/` (Severity Classification) for inference.
 3. Run the Streamlit app with:
 
 ```powershell
