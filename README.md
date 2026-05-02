@@ -6,13 +6,22 @@ Project 1: a multi-output, multiclass NLP system for citizen grievance handling.
 
 ```powershell
 pip install -r requirements.txt
-streamlit run streamlit.py
+uvicorn src.main:app --reload
 ```
 
-Optional database connection test:
+Then open:
+
+- Swagger UI: `http://127.0.0.1:8000/docs`
+- FastAPI OpenAPI schema: `http://127.0.0.1:8000/openapi.json`
+
+Quick API test from PowerShell:
 
 ```powershell
-.\.venv\Scripts\python.exe src\main.py
+Invoke-RestMethod `
+  -Method Post `
+  -Uri http://127.0.0.1:8000/predict `
+  -ContentType "application/json" `
+  -Body '{"complaint":"Garbage is overflowing near my house and the road is damaged."}'
 ```
 
 The project takes a complaint `description` as input and aims to:
@@ -59,24 +68,77 @@ Open and run:
 
 This notebook is where the data loading, preprocessing, augmentation, cross-validation, tuning, and model training logic lives.
 
-### 3. Launch the Streamlit app
+### 3. Launch the FastAPI backend
 
-Run the interactive app from the project root:
+Run the API from the project root:
+
+```powershell
+uvicorn src.main:app --reload
+```
+
+Swagger will be available at:
+
+- `http://127.0.0.1:8000/docs`
+- `http://127.0.0.1:8000/openapi.json`
+
+### 4. Test the prediction endpoint
+
+Use the Swagger UI or send a POST request to:
+
+- `POST /predict`
+
+Request body:
+
+```json
+{
+  "complaint": "Garbage is overflowing near my house and the road is full of potholes."
+}
+```
+
+Response shape:
+
+```json
+{
+  "predicted_department": "BBMP",
+  "severity": "medium"
+}
+```
+
+PowerShell test example:
+
+```powershell
+Invoke-RestMethod `
+  -Method Post `
+  -Uri http://127.0.0.1:8000/predict `
+  -ContentType "application/json" `
+  -Body '{"complaint":"Street lights are not working and the road is unsafe at night."}'
+```
+
+Validation rules for the request:
+
+- `complaint` must not be empty
+- maximum length is `1000` characters
+
+Every successful prediction is appended to:
+
+- `logs/complaints.jsonl`
+
+Each log entry contains:
+
+- `id`
+- `timestamp`
+- `complaint`
+- `predicted_department`
+- `severity`
+- `model_version`
+
+### 5. Optional Streamlit UI
+
+If you still want the interactive Streamlit interface:
 
 ```powershell
 streamlit run streamlit.py
 ```
-
-The app lets you:
-
-- type a new complaint and get a predicted civic department
-- look up a complaint by dataset row number
-- compare predictions across the saved LinearSVC, Logistic Regression, and Random Forest models
-
-### 4. Optional production connection test
-
-If you want to test the database connection script:
-If the connection is correct, it should print `Connection successful!`.
 
 ## Workflow Overview
 
@@ -210,7 +272,29 @@ It provides two workflows:
 
 The app uses the saved `.joblib` model artifacts in `metrics/` and the processed complaint data from `data/`. It loads the latest saved model bundle for each algorithm automatically.
 
-The dataset used for inference is expected to be available as `data/augmented_combined.csv`, with `description` as the complaint text input and `civic_agency_title` as the target department label.
+## FastAPI Backend
+
+The API backend lives in:
+
+- `src/main.py`
+
+The backend:
+
+- loads the civic-agency and severity models once at startup
+- validates input with Pydantic
+- exposes `POST /predict`
+- logs predictions asynchronously to `logs/complaints.jsonl`
+- serves Swagger at `/docs`
+- keeps database connection setup reusable through `src/db/postgres.py`
+
+Backend structure:
+
+- `src/main.py`
+- `src/db/postgres.py`
+- `src/ml/model_loader.py`
+- `src/ml/predictor.py`
+- `src/schemas/schemas.py`
+- `src/logger/logger.py`
 
 ## Folder Structure
 
@@ -218,10 +302,11 @@ The dataset used for inference is expected to be available as `data/augmented_co
 ai_grievance_system/
   data/                   Dataset files and processed artifacts
   docs/                   Documentation and project notes
-  metrics/                Model metrics, confusion matrices, and saved models (Authority)
-  metrics_model_severity/ Model metrics and saved PyTorch model weights (Severity)
+  logs/                   JSONL prediction logs
+  metrics/                Model metrics, confusion matrices, and saved models
+  metrics_model_severity/ Severity-model artifacts
   notebook/               EDA and training notebook
-  src/                    Source code, database connection, and env files
+  src/                    FastAPI backend, DB utilities, ML loaders, and schemas
   theory/                 Supporting references and theory notes
   streamlit.py            Streamlit application entrypoint
 ```

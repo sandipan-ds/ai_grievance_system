@@ -1,6 +1,6 @@
 ## Project 1 Notes for Collaborators
 
-These notes are meant to keep the team aligned on branch hygiene, local setup, notebook usage, and the Streamlit app.
+These notes are meant to keep the team aligned on branch hygiene, local setup, notebook usage, and the FastAPI deployment flow.
 
 ## 1. Getting Started
 
@@ -25,11 +25,16 @@ Use a clear branch name that reflects your work.
 
 ```powershell
 pip install -r requirements.txt
+uvicorn src.main:app --reload
 streamlit run streamlit.py
-.\.venv\Scripts\python.exe src\main.py
 ```
 
-Use the Streamlit command for the app, and the Python command for a database connection check.
+Use the `uvicorn` command for the FastAPI backend and `/docs` testing. Use the Streamlit command only if you want the UI.
+
+Main backend URLs after startup:
+
+- Swagger UI: `http://127.0.0.1:8000/docs`
+- OpenAPI schema: `http://127.0.0.1:8000/openapi.json`
 
 ## 2. Day-to-Day Workflow
 
@@ -94,21 +99,84 @@ pip install -r requirements.txt
 
 Then follow the main working flow:
 
-1. Use `notebook/ai_grievance_system.ipynb` for exploration, preprocessing, augmentation, cross-validation, and model training (both Authority Routing ML models and Severity Classification Deep Learning models).
-2. Use the saved `joblib` model artifacts under `metrics/` (Authority Routing) and the `.pt` PyTorch models under `metrics_model_severity/` (Severity Classification) for inference.
-3. Run the Streamlit app with:
+1. Use `notebook/ai_grievance_system.ipynb` for exploration, preprocessing, augmentation, cross-validation, and model training.
+2. Use the saved `joblib` model artifacts under `metrics/` for inference.
+3. Run the FastAPI backend with:
+
+```powershell
+uvicorn src.main:app --reload
+```
+
+4. Open Swagger at:
+
+- `http://127.0.0.1:8000/docs`
+- `http://127.0.0.1:8000/openapi.json`
+
+5. Test the backend using `POST /predict` with:
+
+```json
+{
+  "complaint": "Garbage is overflowing near my house and the road is full of potholes."
+}
+```
+
+You can also test from PowerShell:
+
+```powershell
+Invoke-RestMethod `
+  -Method Post `
+  -Uri http://127.0.0.1:8000/predict `
+  -ContentType "application/json" `
+  -Body '{"complaint":"Garbage is overflowing near my house and the road is full of potholes."}'
+```
+
+The backend returns:
+
+```json
+{
+  "predicted_department": "BBMP",
+  "severity": "medium"
+}
+```
+
+Validation notes:
+
+- `complaint` must not be empty
+- `complaint` must be at most `1000` characters
+
+6. If needed, run the Streamlit app separately:
 
 ```powershell
 streamlit run streamlit.py
 ```
 
-The Streamlit app supports:
+## 7. FastAPI Backend Notes
 
-- typing a new complaint and getting a predicted civic department
-- checking an existing dataset row by row number
-- comparing predictions across LinearSVC, Logistic Regression, and Random Forest
+The API entry point is `src/main.py`.
 
-## 7. Notes for the Notebook Pipeline
+The backend loads:
+
+- civic-agency prediction from `metrics/linearsvc/`
+- severity prediction from `metrics_model_severity/distilbert/production_model_1/`
+
+Prediction logs are appended to:
+
+- `logs/complaints.jsonl`
+
+Each logged record includes:
+
+- `id`
+- `timestamp`
+- `complaint`
+- `predicted_department`
+- `severity`
+- `model_version`
+
+The database utilities used by the backend now live in:
+
+- `src/db/postgres.py`
+
+## 8. Notes for the Notebook Pipeline
 
 Most of the exploratory work, preprocessing, augmentation, cross-validation, and model training lives in:
 
