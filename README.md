@@ -29,14 +29,16 @@ The project takes a complaint `description` as input and aims to:
 - route the complaint to the correct civic authority
 - assign the correct severity class
 
-The currently implemented pipeline focuses on the **authority-routing model**. Severity labeling is part of the broader project goal and earlier labeling work has already been completed upstream.
+The currently implemented pipeline focuses on two core tasks:
+1. **Authority-routing model**: Predicting the correct civic department using traditional ML models.
+2. **Severity classification model**: Predicting the severity (Critical, High, Medium, Low) using a custom PyTorch LSTM neural network with Focal Loss and a penalty matrix to handle class imbalance.
 
 ## Project Status
 
-- Initial data labeling has been completed using the Gemini API.
+- Initial severity data labeling was completed using the Gemini API.
 - Complaint data is now consolidated in Supabase PostgreSQL.
-- The notebook pipeline covers EDA, preprocessing, augmentation, cross-validation, and model training.
-- Final model artifacts are saved as `joblib` files and tracked with DVC.
+- The notebook pipeline covers EDA, preprocessing, augmentation, cross-validation, and model training for both authority routing and severity classification.
+- Final authority model artifacts are saved as `joblib` files, while the PyTorch LSTM models are saved as `.pt` weights. All models and metrics are tracked with DVC.
 
 ## How To Use
 
@@ -206,20 +208,29 @@ This approach reduces repeated preprocessing, keeps validation data clean, and g
 
 ### 8. Model Training
 
-The notebook trains multiple classical text classifiers using a TF-IDF pipeline:
+The notebook trains models for both prediction tasks:
 
+**Authority Routing:**
+Trains multiple classical text classifiers using a TF-IDF pipeline:
 1. Logistic Regression
 2. LinearSVC
 3. Random Forest Classifier
 
-The best hyperparameters are saved into the `metrics/` folder, and the final model is trained from those tuned settings.
+**Severity Classification:**
+Trains a custom LSTM-based neural network using PyTorch. The training loop includes:
+- Differentiable focal loss function with a cost-sensitive penalty matrix to mitigate class imbalance
+- Early stopping based on validation F1-Macro score
+- Learning rate scheduler (`ReduceLROnPlateau`)
+
+The best hyperparameters are evaluated using 5-fold cross-validation.
 
 ### 9. Artifact Storage
 
 The project stores:
 
-- trained model files as `joblib`
-- tuning results and evaluation summaries in `metrics/`
+- trained classical model files as `joblib`
+- trained PyTorch LSTM weights as `.pt` files
+- tuning results, evaluation summaries, and confusion matrices in `metrics/` (authority) and `metrics_model_severity/` (severity)
 - versioned data and model artifacts with DVC
 
 ## Best Performing Model
