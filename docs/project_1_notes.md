@@ -102,16 +102,16 @@ dbname=postgres
 
 ## 4. Important Run Commands
 
-Backend:
-
-```powershell
-uvicorn src.main:app --reload
-```
-
-Frontend UI:
+Client-facing use:
 
 ```powershell
 streamlit run streamlit.py
+```
+
+Developer / Swagger use:
+
+```powershell
+uvicorn src.main:app --reload
 ```
 
 Main backend URLs:
@@ -128,6 +128,8 @@ Invoke-RestMethod `
   -ContentType "application/json" `
   -Body '{"complaint":"Garbage is overflowing near my house and the road is damaged."}'
 ```
+
+Streamlit can auto-start the local FastAPI backend when it is not already running on `127.0.0.1:8000`, so the client-facing run command is usually enough for demos.
 
 ## 5. Data And Training Workflow
 
@@ -301,12 +303,20 @@ The Streamlit interface is in:
 
 - `streamlit.py`
 
+It is now a client-facing front end that talks to the FastAPI backend instead of loading models locally.
+
 It is useful for:
 
 - testing new complaint text
 - checking predictions against dataset rows
-- comparing multiple department models
 - viewing severity alongside civic-agency prediction
+
+Streamlit uses:
+
+- `POST /predict` for backend inference
+- `data/augmented_combined.csv` for dataset lookup
+
+The backend URL can be changed from the Streamlit sidebar if the API is hosted somewhere else.
 
 ## 14. DVC Usage
 

@@ -6,13 +6,14 @@ Project 1: a multi-output, multiclass NLP system for citizen grievance handling.
 
 ```powershell
 pip install -r requirements.txt
-uvicorn src.main:app --reload
+streamlit run streamlit.py
 ```
 
 Then open:
 
-- Swagger UI: `http://127.0.0.1:8000/docs`
-- FastAPI OpenAPI schema: `http://127.0.0.1:8000/openapi.json`
+- Streamlit app: the browser window opened by Streamlit
+- Swagger UI: `http://127.0.0.1:8000/docs` if you start FastAPI separately
+- FastAPI OpenAPI schema: `http://127.0.0.1:8000/openapi.json` if you start FastAPI separately
 
 Quick API test from PowerShell:
 
@@ -153,6 +154,8 @@ If you still want the interactive Streamlit interface:
 ```powershell
 streamlit run streamlit.py
 ```
+
+For local use, Streamlit can also start the FastAPI backend automatically if it is not already running on `127.0.0.1:8000`.
 
 ## Workflow Overview
 
@@ -351,12 +354,19 @@ The interactive UI is in:
 
 - `streamlit.py`
 
+It acts as the client-facing front end for non-technical users and sends complaints to the FastAPI backend.
+
 It provides two workflows:
 
 - **New Complaint Testing** for typing a fresh complaint and viewing predictions
 - **Dataset Complaint Lookup** for inspecting an existing complaint row and comparing the actual department with model predictions
 
-The app uses the saved `.joblib` model artifacts in `metrics/` and the processed complaint data from `data/`. It loads the latest saved model bundle for each algorithm automatically.
+The app uses:
+
+- the FastAPI `POST /predict` endpoint for department and severity predictions
+- the processed complaint data from `data/` for dataset lookup
+
+You can change the backend base URL in the sidebar if the API is running somewhere other than `http://127.0.0.1:8000`.
 
 ## FastAPI Backend
 
