@@ -6,13 +6,14 @@ Project 1: a multi-output, multiclass NLP system for citizen grievance handling.
 
 ```powershell
 pip install -r requirements.txt
-uvicorn src.main:app --reload
+streamlit run streamlit.py
 ```
 
 Then open:
 
-- Swagger UI: `http://127.0.0.1:8000/docs`
-- FastAPI OpenAPI schema: `http://127.0.0.1:8000/openapi.json`
+- Streamlit app: the browser window opened by Streamlit
+- Swagger UI: `http://127.0.0.1:8000/docs` if you start FastAPI separately
+- FastAPI OpenAPI schema: `http://127.0.0.1:8000/openapi.json` if you start FastAPI separately
 
 Quick API test from PowerShell:
 
@@ -29,16 +30,19 @@ The project takes a complaint `description` as input and aims to:
 - route the complaint to the correct civic authority
 - assign the correct severity class
 
-The currently implemented pipeline focuses on two core tasks:
-1. **Authority-routing model**: Predicting the correct civic department using traditional ML models.
-2. **Severity classification model**: Predicting the severity (Critical, High, Medium, Low) using a custom PyTorch LSTM neural network with Focal Loss and a penalty matrix to handle class imbalance.
+The project now includes both:
+
+- a civic-agency routing pipeline
+- a severity prediction pipeline
+
+The FastAPI backend serves both predictions together from the same complaint text.
 
 ## Project Status
 
-- Initial severity data labeling was completed using the Gemini API.
+- Initial data labeling has been completed using the Gemini API.
 - Complaint data is now consolidated in Supabase PostgreSQL.
-- The notebook pipeline covers EDA, preprocessing, augmentation, cross-validation, and model training for both authority routing and severity classification.
-- Final authority model artifacts are saved as `joblib` files, while the PyTorch LSTM models are saved as `.pt` weights. All models and metrics are tracked with DVC.
+- The notebook pipeline covers EDA, preprocessing, augmentation, cross-validation, and model training.
+- Final model artifacts are saved as `joblib` files and tracked with DVC.
 
 ## How To Use
 
@@ -67,6 +71,17 @@ Open and run:
 - `notebook/ai_grievance_system.ipynb`
 
 This notebook is where the data loading, preprocessing, augmentation, cross-validation, tuning, and model training logic lives.
+
+For severity modeling specifically, use **Section 5** of the notebook.
+
+That section covers:
+
+- severity-specific preprocessing
+- augmentation and fold preparation
+- DistilBERT training and evaluation
+- recall-focused DistilBERT experiments for `Critical`
+- LSTM training and evaluation
+- classical baselines: Logistic Regression, LinearSVC, and Random Forest
 
 ### 3. Launch the FastAPI backend
 
@@ -140,6 +155,8 @@ If you still want the interactive Streamlit interface:
 streamlit run streamlit.py
 ```
 
+For local use, Streamlit can also start the FastAPI backend automatically if it is not already running on `127.0.0.1:8000`.
+
 ## Workflow Overview
 
 ### 1. Data Collection
@@ -208,30 +225,101 @@ This approach reduces repeated preprocessing, keeps validation data clean, and g
 
 ### 8. Model Training
 
-The notebook trains models for both prediction tasks:
+The notebook trains multiple classical text classifiers using a TF-IDF pipeline:
 
-**Authority Routing:**
-Trains multiple classical text classifiers using a TF-IDF pipeline:
 1. Logistic Regression
 2. LinearSVC
 3. Random Forest Classifier
 
-**Severity Classification:**
-Trains a custom LSTM-based neural network using PyTorch. The training loop includes:
-- Differentiable focal loss function with a cost-sensitive penalty matrix to mitigate class imbalance
-- Early stopping based on validation F1-Macro score
-- Learning rate scheduler (`ReduceLROnPlateau`)
-
-The best hyperparameters are evaluated using 5-fold cross-validation.
+The best hyperparameters are saved into the `metrics/` folder, and the final model is trained from those tuned settings.
 
 ### 9. Artifact Storage
 
 The project stores:
 
-- trained classical model files as `joblib`
-- trained PyTorch LSTM weights as `.pt` files
-- tuning results, evaluation summaries, and confusion matrices in `metrics/` (authority) and `metrics_model_severity/` (severity)
+- trained model files as `joblib`
+- tuning results and evaluation summaries in `metrics/`
 - versioned data and model artifacts with DVC
+
+## Severity Training And Evaluation
+
+The severity workflow is implemented in **Section 5** of:
+
+- `notebook/ai_grievance_system.ipynb`
+
+### Severity preprocessing
+
+The severity models use the complaint `description` field as input and `severity` as the target.
+
+The notebook applies:
+
+- lowercasing
+- URL removal
+- non-letter / special-character cleanup
+- whitespace normalization
+- stopword removal
+- lemmatization
+
+The same section also builds severity-specific augmented folds and saves them as:
+
+- `data/processed/cv_fold_data_augmented_severity.joblib`
+
+These folds follow the same CV policy used elsewhere in the project:
+
+- split the cleaned data into 5 folds
+- use 4 folds for training
+- augment only the training portion
+- validate on the untouched original fold
+
+### Severity models trained in the notebook
+
+The notebook trains and evaluates:
+
+1. DistilBERT baseline
+2. DistilBERT recall-focused variant for `Critical`
+3. LSTM
+4. Logistic Regression
+5. LinearSVC
+6. Random Forest
+
+### How severity evaluation is saved
+
+Depending on the model family, the notebook writes out:
+
+- per-fold metrics JSON files
+- classification reports
+- `summary.json` files with mean and standard deviation across folds
+- aggregated or out-of-fold confusion matrix images
+
+Main output folders:
+
+- `metrics_model_severity/distilbert/metrics_model_1/`
+- `metrics_model_severity/distilbert/model_2/`
+- `metrics_model_severity/lstm/native/`
+- `metrics_model_severity/logistic_regression/`
+- `metrics_model_severity/linearsvc/`
+- `metrics_model_severity/random_forest/`
+
+### Severity results summary
+
+From the saved evaluation artifacts:
+
+| Model | Accuracy | Macro F1 | Notes |
+| :--- | :--- | :--- | :--- |
+| **DistilBERT (baseline)** | 0.79 | 0.73 | Best overall severity model in the saved metrics |
+| **DistilBERT (recall-focused)** | 0.76 | 0.72 | Cost-sensitive experiment to reduce `Critical` under-calling |
+| **Logistic Regression** | 0.75 | 0.68 | Strongest classical baseline among the saved severity runs |
+| **LinearSVC** | 0.74 | 0.67 | Close classical baseline |
+| **Random Forest** | 0.75 | 0.64 | Higher accuracy than macro F1 because minority classes are harder |
+| **LSTM** | 0.64 | 0.60 | Lowest overall among the saved severity experiments |
+
+### Current production severity model
+
+The backend currently loads the exported severity model from:
+
+- `metrics_model_severity/distilbert/production_model_1/`
+
+That production folder contains the tokenizer, label encoder, config, and model weights used by the FastAPI `/predict` endpoint.
 
 ## Best Performing Model
 
@@ -256,7 +344,8 @@ That notebook contains:
 - preprocessing
 - augmentation
 - cross-validation
-- model training
+- civic-agency model training
+- severity model training
 - metrics generation
 
 ## Streamlit App
@@ -265,12 +354,19 @@ The interactive UI is in:
 
 - `streamlit.py`
 
+It acts as the client-facing front end for non-technical users and sends complaints to the FastAPI backend.
+
 It provides two workflows:
 
 - **New Complaint Testing** for typing a fresh complaint and viewing predictions
 - **Dataset Complaint Lookup** for inspecting an existing complaint row and comparing the actual department with model predictions
 
-The app uses the saved `.joblib` model artifacts in `metrics/` and the processed complaint data from `data/`. It loads the latest saved model bundle for each algorithm automatically.
+The app uses:
+
+- the FastAPI `POST /predict` endpoint for department and severity predictions
+- the processed complaint data from `data/` for dataset lookup
+
+You can change the backend base URL in the sidebar if the API is running somewhere other than `http://127.0.0.1:8000`.
 
 ## FastAPI Backend
 
@@ -300,15 +396,55 @@ Backend structure:
 
 ```text
 ai_grievance_system/
-  data/                   Dataset files and processed artifacts
-  docs/                   Documentation and project notes
-  logs/                   JSONL prediction logs
-  metrics/                Model metrics, confusion matrices, and saved models
-  metrics_model_severity/ Severity-model artifacts
-  notebook/               EDA and training notebook
-  src/                    FastAPI backend, DB utilities, ML loaders, and schemas
-  theory/                 Supporting references and theory notes
-  streamlit.py            Streamlit application entrypoint
+  .dvc/                           DVC metadata
+  .github/                        GitHub workflows and repo settings
+  checkpoints/                    Training checkpoints for deep models
+  data/
+    nltk/                         Local NLTK resources
+    processed/                    Processed datasets and fold artifacts
+      cv_fold_data_augmented_civic_agencies.joblib
+      cv_fold_data_augmented_severity.joblib
+      cv_folds_augmented.joblib
+      final_dataset.joblib
+    augmented_combined.csv        Dataset used by the Streamlit lookup flow
+  docs/
+    project_1_notes.md            Project guide and collaborator notes
+  logs/
+    complaints.jsonl              FastAPI prediction logs
+  metrics/
+    linearsvc/                    Civic-agency LinearSVC model and metrics
+    logistic_regression/          Civic-agency Logistic Regression metrics
+    MultinomialNB/                Civic-agency MultinomialNB metrics
+    random_forest/                Civic-agency Random Forest model and metrics
+  metrics_model_severity/
+    distilbert/
+      metrics_model_1/            DistilBERT baseline severity evaluation
+      model_2/                    Recall-focused DistilBERT evaluation
+      production_model_1/         Exported severity model used by FastAPI
+    linearsvc/                    Severity LinearSVC metrics
+    logistic_regression/          Severity Logistic Regression metrics
+    lstm/
+      native/                     LSTM severity evaluation outputs
+    multinomialnb/                Severity MultinomialNB metrics
+    random_forest/                Severity Random Forest metrics
+  notebook/
+    ai_grievance_system.ipynb     Main EDA, preprocessing, training, and evaluation notebook
+  src/
+    db/
+      postgres.py                 Reusable PostgreSQL / Supabase connection helpers
+    logger/
+      logger.py                   JSONL prediction logging
+    ml/
+      model_loader.py             Startup model loading
+      predictor.py                Shared preprocessing and prediction logic
+    schemas/
+      schemas.py                  Pydantic request and response models
+    .env.example                  Example backend environment config
+    main.py                       FastAPI entrypoint
+  theory/                         Supporting references and theory notes
+  README.md                       Main project documentation
+  requirements.txt                Python dependencies
+  streamlit.py                    Streamlit application entrypoint
 ```
 
 ## Historical Context
