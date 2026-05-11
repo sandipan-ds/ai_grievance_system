@@ -1,14 +1,14 @@
 {
-    "loss": 0.27,
-    "accuracy": 0.75,
+    "loss": 2.2,
+    "accuracy": 0.78,
     "f1_macro": 0.71,
-    "f1_micro": 0.75,
-    "f1_weighted": 0.75,
-    "precision_weighted": 0.78,
-    "recall_weighted": 0.75,
-    "runtime": 85.53,
-    "samples_per_second": 38.57,
-    "steps_per_second": 19.29,
+    "f1_micro": 0.78,
+    "f1_weighted": 0.78,
+    "precision_weighted": 0.79,
+    "recall_weighted": 0.78,
+    "runtime": 12.3,
+    "samples_per_second": 268.18,
+    "steps_per_second": 16.83,
     "epoch": 3.0,
     "fold": 3
 }

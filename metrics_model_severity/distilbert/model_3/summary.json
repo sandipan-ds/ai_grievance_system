@@ -1,0 +1,38 @@
+{
+    "mean": {
+        "loss": 0.69,
+        "accuracy": 0.78,
+        "precision_weighted": 0.79,
+        "recall_weighted": 0.78,
+        "f1_weighted": 0.78,
+        "f1_macro": 0.72,
+        "f1_micro": 0.78,
+        "runtime": 38.3,
+        "samples_per_second": 86.45,
+        "steps_per_second": 43.24,
+        "epoch": 3.0,
+        "fold": 2.0,
+        "acc_critical": 0.67,
+        "acc_high": 0.83,
+        "acc_medium": 0.78,
+        "acc_low": 0.55
+    },
+    "std": {
+        "loss": 0.04,
+        "accuracy": 0.01,
+        "precision_weighted": 0.01,
+        "recall_weighted": 0.01,
+        "f1_weighted": 0.01,
+        "f1_macro": 0.01,
+        "f1_micro": 0.01,
+        "runtime": 2.59,
+        "samples_per_second": 5.66,
+        "steps_per_second": 2.83,
+        "epoch": 0.0,
+        "fold": 1.58,
+        "acc_critical": 0.05,
+        "acc_high": 0.02,
+        "acc_medium": 0.02,
+        "acc_low": 0.04
+    }
+}
