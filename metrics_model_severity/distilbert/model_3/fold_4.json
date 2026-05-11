@@ -1,0 +1,18 @@
+{
+    "loss": 0.71,
+    "accuracy": 0.78,
+    "precision_weighted": 0.79,
+    "recall_weighted": 0.78,
+    "f1_weighted": 0.78,
+    "f1_macro": 0.71,
+    "f1_micro": 0.78,
+    "runtime": 35.57,
+    "samples_per_second": 92.76,
+    "steps_per_second": 46.39,
+    "epoch": 3.0,
+    "fold": 4,
+    "acc_critical": 0.68,
+    "acc_high": 0.81,
+    "acc_medium": 0.79,
+    "acc_low": 0.51
+}
