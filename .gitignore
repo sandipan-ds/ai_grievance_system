@@ -6,7 +6,7 @@ src/.env
 .venv/
 .history/
 .vscode/
-__pycache__/
+*__pycache__/
 *.pyc
 .ipynb_checkpoints/
 .streamlit/
