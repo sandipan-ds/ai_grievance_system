@@ -13,6 +13,7 @@ src/.env
 GitHub Commit and DVC Setup.pdf
 checkpoints/
 theory/
+*.png
 
 # Local data and cache artifacts
 dvc_storage/
