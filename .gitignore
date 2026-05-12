@@ -1,10 +1,12 @@
 # Local environment and editor files
 .env
 src/.env
+*.env
+*.env.example
 .venv/
 .history/
 .vscode/
-__pycache__/
+*__pycache__/
 *.pyc
 .ipynb_checkpoints/
 .streamlit/
@@ -17,6 +19,7 @@ dvc_storage/
 .dvc/cache/
 .dvc/tmp/
 data/nltk/
+logs/
 
 # Large data/model artifacts are managed by DVC
 *.joblib

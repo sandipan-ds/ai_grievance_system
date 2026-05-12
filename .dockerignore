@@ -1,0 +1,69 @@
+# Virtual environments
+.venv/
+venv/
+env/
+.history/
+
+# Jupyter / notebook
+notebook/
+*.ipynb
+.ipynb_checkpoints/
+
+# Git / DVC
+.git/
+.dvc/
+dvc_storage/
+
+# Training artifacts (keep only production model)
+checkpoints/
+metrics_model_severity/distilbert/metrics_model_1/
+metrics_model_severity/distilbert/model_2/
+metrics_model_severity/distilbert/model_3/
+metrics_model_severity/lstm/
+metrics_model_severity/logistic_regression/
+metrics_model_severity/linearsvc/
+metrics_model_severity/random_forest/
+metrics_model_severity/multinomialnb/
+
+# Civic agency models - keep linearsvc joblib only, ignore eval outputs
+metrics_model_civic_bodies/linearsvc/*.png
+metrics_model_civic_bodies/linearsvc/*.json
+metrics_model_civic_bodies/linearsvc/*.dvc
+metrics_model_civic_bodies/linearsvc/.gitignore
+# Ignore other civic body model folders entirely
+metrics_model_civic_bodies/logistic_regression/
+metrics_model_civic_bodies/random_forest/
+metrics_model_civic_bodies/multinomialnb/
+
+# Raw data (not needed for inference)
+data/raw/
+data/intermediate/
+data/processed/
+
+# Logs
+logs/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Docs / notes
+docs/
+theory/
+*.md
+LICENSE
+
+# Env / secrets
+.env
+*.env
+*.env.example
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.cache/
+theory/

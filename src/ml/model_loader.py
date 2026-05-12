@@ -10,7 +10,7 @@ from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DEPARTMENT_MODEL_DIR = PROJECT_ROOT / "metrics" / "linearsvc"
+DEPARTMENT_MODEL_DIR = PROJECT_ROOT / "metrics_model_civic_bodies" / "linearsvc"
 SEVERITY_MODEL_DIR = PROJECT_ROOT / "metrics_model_severity" / "distilbert" / "production_model_1"
 SEVERITY_MODEL_FALLBACK_DIR = PROJECT_ROOT / "metrics_model_severity" / "distilbert" / "production_model"
 
