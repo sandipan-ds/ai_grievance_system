@@ -42,7 +42,7 @@ The Streamlit dashboard enables users to:
 ### Screenshots
 
 #### Home Dashboard
-![Dashboard Screenshot](dashboard_screenshots/complaint_distribution.png)
+![Dashboard Screenshot](dashboard_screenshots/dept_wise_complaint_dashboard.png)
 
 #### Complaint Prediction Interface
 ![Prediction Screenshot](dashboard_screenshots/complaint_register.png)
