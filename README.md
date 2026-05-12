@@ -42,16 +42,16 @@ The Streamlit dashboard enables users to:
 ### Screenshots
 
 #### Home Dashboard
-![Dashboard Screenshot](dashboard_screenshots\complaint_distribution.png)
+![Dashboard Screenshot](dashboard_screenshots/complaint_distribution.png)
 
 #### Complaint Prediction Interface
-![Prediction Screenshot](dashboard_screenshots\complaint_register.png)
+![Prediction Screenshot](dashboard_screenshots/complaint_register.png)
 
 #### Severity Analytics
-![Analytics Screenshot](dashboard_screenshots\complaint_distribution.png)
+![Analytics Screenshot](dashboard_screenshots/complaint_distribution.png)
 
 #### FastAPI Swagger Documentation
-![API Screenshot](dashboard_screenshots\fast_api_response.png)
+![API Screenshot](dashboard_screenshots/fast_api_response.png)
 
 ## 4. Problem Statement
 
