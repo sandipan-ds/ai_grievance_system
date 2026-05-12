@@ -9,7 +9,7 @@ Built using FastAPI, Streamlit, DistilBERT, LinearSVC, Supabase, and Hugging Fac
 ## 2. Live Demo
 
 - Web App: https://huggingface.co/spaces/sandipanarnab/grievance_iq
-- GitHub: https://github.com/your-name/project-name
+- GitHub: https://github.com/sandipan-ds/ai_grievance_system
 
 ## 3. Application Preview
 
