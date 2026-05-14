@@ -1,47 +1,22 @@
-# Virtual environments
-.venv/
-venv/
-env/
-.history/
+# Backend code (not needed in frontend)
+src/
 
-# Jupyter / notebook
-notebook/
-*.ipynb
-.ipynb_checkpoints/
+# Model directories (backend has them)
+metrics_model_severity/
+metrics_model_civic_bodies/
 
-# Git / DVC
-.git/
-.dvc/
-dvc_storage/
-
-# Training artifacts (keep only production model)
+# Training artifacts
 checkpoints/
-metrics_model_severity/distilbert/metrics_model_1/
-metrics_model_severity/distilbert/model_2/
-metrics_model_severity/distilbert/model_3/
-metrics_model_severity/lstm/
-metrics_model_severity/logistic_regression/
-metrics_model_severity/linearsvc/
-metrics_model_severity/random_forest/
-metrics_model_severity/multinomialnb/
 
-# Civic agency models - keep linearsvc joblib only, ignore eval outputs
-metrics_model_civic_bodies/linearsvc/*.png
-metrics_model_civic_bodies/linearsvc/*.json
-metrics_model_civic_bodies/linearsvc/*.dvc
-metrics_model_civic_bodies/linearsvc/.gitignore
-# Ignore other civic body model folders entirely
-metrics_model_civic_bodies/logistic_regression/
-metrics_model_civic_bodies/random_forest/
-metrics_model_civic_bodies/multinomialnb/
-
-# Raw data (not needed for inference)
+# Data that is not needed for inference
 data/raw/
 data/intermediate/
 data/processed/
+data/augmented_combined.csv.dvc
+data/cv_fold_data_augmented_civic_agencies.joblib
 
-# Logs
-logs/
+# Logs (ignore log files, keep directory)
+logs/*
 
 # IDE / OS
 .vscode/
@@ -52,8 +27,6 @@ Thumbs.db
 # Docs / notes
 docs/
 theory/
-*.md
-LICENSE
 
 # Env / secrets
 .env
@@ -66,4 +39,25 @@ __pycache__/
 *.pyo
 *.pyd
 .cache/
-theory/
+
+# Jupyter / notebook
+notebook/
+*.ipynb
+.ipynb_checkpoints/
+
+# Git / DVC
+.git/
+.dvc/
+dvc_storage/
+
+# Other
+charts_and_graphs/
+dashboard_screenshots/
+
+# Dockerfile and related (not needed in image)
+Dockerfile
+.dockerignore
+.gitignore
+.dvcignore
+LICENSE
+README.md
