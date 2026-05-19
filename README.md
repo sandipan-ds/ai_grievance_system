@@ -157,6 +157,11 @@ The application is containerized using Docker and deployed on Hugging Face Space
 ### Run Locally
 
 ```bash
-pip install -r requirements.txt
-streamlit run streamlit.py
+pip install -r requirements.txt (# To install the dependencies of thsi project)
+streamlit run streamlit.py (# To run the streamlit.py)
+uvicorn src.main:app --reload (# To run the fastapi Swagger UI backend)
+docker run -p 7860:7860 ai_grievance_system (# To run the docker with streamlit front end and fastapi backend on port 7860,
+                                               Then open http://localhost:7860 in your browser)
+
+
 

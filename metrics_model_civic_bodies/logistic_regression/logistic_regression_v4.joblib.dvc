@@ -1,5 +1,0 @@
-outs:
-- md5: 0c059cc81c8b90619b345849ccc72954
-  size: 1251585
-  hash: md5
-  path: logistic_regression_v4.joblib

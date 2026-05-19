@@ -37,3 +37,6 @@ notebook/results_fold_*/
 data/processed/*
 !data/processed/.gitignore
 !data/processed/*.dvc
+
+.kilo
+*.csv
