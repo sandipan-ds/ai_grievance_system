@@ -1,9 +1,0 @@
-{
-    "accuracy": 0.62,
-    "f1_macro": 0.58,
-    "f1_micro": 0.62,
-    "f1_weighted": 0.62,
-    "precision_weighted": 0.68,
-    "recall_weighted": 0.62,
-    "fold": 4
-}

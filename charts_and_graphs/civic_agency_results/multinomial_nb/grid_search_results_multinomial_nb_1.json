@@ -1,0 +1,27 @@
+{
+    "version": 1,
+    "model": "multinomial_nb",
+    "best_params": {
+        "clf__alpha": 0.5,
+        "clf__fit_prior": true,
+        "tfidf__max_features": 5000,
+        "tfidf__ngram_range": [
+            1,
+            1
+        ]
+    },
+    "metrics": {
+        "val_f1_macro": 0.7594008054030867,
+        "val_f1_micro": 0.8972414941380459,
+        "val_f1_weighted": 0.8944693880612442,
+        "val_accuracy": 0.8972414941380459,
+        "val_precision": 0.8097619038844179,
+        "val_recall": 0.724439287784366,
+        "train_f1_macro": 0.9316059568458783,
+        "train_f1_micro": 0.9233980225951921,
+        "train_f1_weighted": 0.9232723972865451,
+        "train_accuracy": 0.9233980225951921,
+        "train_precision": 0.9427176831500329,
+        "train_recall": 0.9221338882891275
+    }
+}
