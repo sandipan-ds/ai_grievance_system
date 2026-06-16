@@ -50,4 +50,6 @@ models/
 # other scripts
 check_data.py
 scratch/
+troubleshoots/
+
 
