@@ -1,112 +1,134 @@
-# Grievance IQ — Project System Design & Architecture
+# AI-Powered Civic Grievance Classification System: End-to-End Project Execution
 
-This document describes the technical blueprint, algorithmic progression, ensembling design, and system architecture of **Grievance IQ**. It details how the machine learning pipelines were trained, optimized, validated, and scaled to production.
+This document outlines the comprehensive end-to-end execution of the **Grievance IQ** project. This project implements a multi-output NLP routing system that automatically predicts the responsible civic department and severity level for citizen complaints. 
 
----
-
-## 1. System Engineering Blueprint
-
-Grievance IQ serves as a production-grade automated routing and prioritization system for civic complaints. It integrates a **Weighted Soft-Voting Transformer Ensemble** for routing and a **Sequence-to-Sequence + Classification Pair Pipeline** for severity prioritization.
-
-```text
-               [ Raw Grievance Complaint ]
-                            │
-                            ▼
-                [ NLTK Preprocessing ]
-                            │
-                            ▼
-          ┌─────────────────┴─────────────────┐
-          ▼                                   ▼
- [ Civic Agency Routing ]         [ Severity Prioritization ]
- ├── DistilBERT (OOF Probs)       ├── T5-Base CoT Reasoner
- ├── RoBERTa (OOF Probs)          │   └── (Generates explanation)
- └── DeBERTa v3 (OOF Probs)       ▼
-          │                [ RoBERTa Text-Pair Head ]
-          ▼                   └── (Complaint + T5 Reason)
-[ Blended Soft Voting ]                       │
- (0.45 / 0.25 / 0.30)                         ▼
-          │                       [ Priority Severity Level ]
-          ▼                         (Critical/High/Med/Low)
-[ Routed Department ]                         │
-          │                                   │
-          └─────────────────┬─────────────────┘
-                            ▼
-                 [ FastAPI Telemetry logs ]
-                            │
-                            ▼
-               [ Glassmorphic Analytics ]
-```
+The architecture bridges state-of-the-art Natural Language Processing (Transformers, Ensembling, Chain-of-Thought) with a production-ready Web API (FastAPI) and an interactive dashboard.
 
 ---
 
-## 2. Phase 1 — Data cleaning & KDE Distribution Outlier Filtering
+## 1. Project Architecture & Ecosystem
 
-The raw dataset fetched from Supabase PostgreSQL (16,107 records) was cleaned and prepared through a rigorous pipeline:
-* **Department Normalization**: Consolidated agency acronyms (e.g. mapping varied string variants to BBMP, BWSSB, BESCOM, etc.) and pruned ultra-sparse categories to reduce label entropy.
-* **Length KDE Analysis**: Plotted the Kernel Density Estimate (KDE) of word counts across severity levels to find outliers. We established a lower bound of 1 word and an upper bound of 108 words (covering the 95th percentile) to truncate long-tail complaints and eliminate noise.
-* **Text Preprocessing**: Implemented custom lowercasing, regex-based URL and special character removal, stopword filtering, and lemmatization using NLTK's `WordNetLemmatizer`.
-
----
-
-## 3. Phase 2 — Civic Agency Classification (Transformer ensembling)
-
-### 3.1 Base Model Folds (5-Fold CV)
-Three deep learning architectures were fine-tuned using 5-Fold Cross Validation on Vertex AI to generate Out-of-Fold (OOF) prediction probabilities:
-1. **DistilBERT** (`distilbert-base-uncased`): Light, high-throughput model. (Best fold F1-Macro: **0.7286**)
-2. **RoBERTa** (`roberta-base`): High-capacity classifier with dynamic masking. (Best fold F1-Macro: **0.7279**)
-3. **DeBERTa v3** (`microsoft/deberta-v3-base`): Advanced disentangled attention layers. (Best fold F1-Macro: **0.7221**)
-
-### 3.2 Complementarity Analysis
-We evaluated prediction overlaps to determine sample-level disagreement:
-* **consensus (All 3 correct)**: 88.1% of samples.
-* **irrecoverable (All 3 wrong)**: 4.4% of samples.
-* **rescuable (Disagreement - at least one model correct)**: **7.5% (1,208 samples)**.
-* **Oracle Ceiling**: **95.65% accuracy** / **0.8393 F1-Macro**, showing significant headroom for ensembling.
-
-### 3.3 Soft Blending Optimization (Weighted Soft Voting)
-To capture model confidence signals, we extracted softmax probability arrays and optimized blending weights. We evaluated three approaches:
-1. **Hard-Label Stacking**: Meta-model (Logistic Regression) trained on one-hot features. Underperformed (**0.7217 F1-Macro**) due to loss of probability scale.
-2. **Majority Voting**: Simple consensus baseline. (**0.7534 F1-Macro**, **+0.025** over best single model).
-3. **Weighted Soft Voting (WSV)**: **WINNER**. Blended probability vectors using weights optimized via grid search:
-   - DistilBERT Weight: **0.45**
-   - RoBERTa Weight: **0.25**
-   - DeBERTa v3 Weight: **0.30**
-   * **Final Score**: **93.06% Accuracy** / **0.7576 F1-Macro** (**+0.029** macro F1 gain).
-
-### 3.4 McNemar Statistical Hypothesis Testing
-To confirm the validity of the ensembling gain, we ran McNemar's paired chi-squared test comparing the WSV ensemble against the single best model (RoBERTa):
-* **Chi-Squared Statistic**: **62.77**
-* **p-value**: **$2.34 \times 10^{-15}$**
-The p-value is far below $\alpha = 0.05$, confirming that the ensembled model's performance improvements are highly statistically significant.
+The system follows a modular architecture spread across various scripts and notebooks.
+*   **Data Pipeline & ML Notebooks (`../notebooks/`)**: Interactive development using Jupyter Notebooks (`../notebooks/ai_grievance_system_fixed.ipynb`) for EDA, model baselining, and visualization.
+*   **Training & Cloud Integration (`../scripts/`)**: Standalone scripts to offload heavy model training to GCP Vertex AI (`submit_vertex_job_*.py`), download results, extract probabilities (`../scripts/extract_probs_civic.py`), and ensemble models (`../scripts/ensemble_soft_stacking.py`).
+*   **Production API (`../src/inference/`)**: A FastAPI backend (`main.py`, `predictor.py`, `model_loader.py`) handling asynchronous requests, routing text through the ML pipeline, and logging telemetry.
+*   **Frontend (`../src/inference/static/`)**: A Vanilla JS + Tailwind CSS single-page application (SPA) providing an interactive, glassmorphic UI with Chart.js analytics.
+*   **Deployment**: Docker containerization pushed to Hugging Face Spaces.
 
 ---
 
-## 4. Phase 3 — Severity Prioritization (T5 + RoBERTa Pair Classifier)
-
-Classifying complaint severity is difficult due to subjectiveness. To improve accuracy, we developed a two-stage **Chain-of-Thought (CoT)** pipeline:
-
-1. **Stage 1 — Explanation Generation (T5-Base)**:
-   Fine-tuned `t5-base` on a dataset of complaints and human-labeled severity reasons. On inference, the T5 model takes the raw complaint and generates a contextual explanation of why it belongs to a certain severity level.
-2. **Stage 2 — Text-Pair Classification (RoBERTa)**:
-   We feed the raw complaint concatenated with the generated T5 reason as a sentence pair into a custom `RoBERTa` classifier head (Fine-tuned on sentence pairs).
-   * **Result**: The text-pair classifier reached **76.11% Accuracy / 0.7209 Macro F1**, outperforming classical regressors, standard DistilBERT regressors, and raw text classifiers by over **5.2%**.
+## 2. Phase 1: Data Collection and Labeling
+> *Note: Details regarding data collection, scraping procedures, and manual labeling strategies will be added here tomorrow.*
 
 ---
 
-## 5. Serving Layer & API Engineering
+## 3. Phase 2: Data Preprocessing & Exploratory Data Analysis (EDA)
 
-The backend was built using **FastAPI** to support production ensembling and telemetry:
-* **Lifespan Initialization**: Uses Starlette's `lifespan` context manager to load all five neural networks into GPU/CPU memory once on server start, isolating setup overhead from request times.
-* **Dual Loading (Cloud Fallback)**: Checks if weight folders exist locally (for local development/offline testing). If missing, it uses `huggingface_hub` client functions to pull and cache folds dynamically from the `sandipanarnab/grievance-iq-models` repository.
-* **Testing Isolation**: Implements a dedicated `MOCK_MODELS` environment switch. When active, it bypasses model loading and inserts mock classes (returning mock tensors matching the correct shapes), allowing unit tests to run fully offline on GitHub runner environments.
-* **Asynchronous Telemetry Logging**: Incoming predictions are appended to JSON Lines logs (`logs/complaints.jsonl`) via FastAPI `BackgroundTasks` to avoid delaying responses to the user.
+The initial phase dealt with preparing the raw data retrieved from Supabase PostgreSQL (comprising 16,107 raw grievance records).
+
+### 3.1 Cleaning and Standardisation
+*   **Null Handling**: Null checks were performed across textual descriptions and severity labels. Any rows missing mandatory target variables were discarded.
+*   **Label Standardisation**: Variations in agency names were canonicalized. For example, "Bruhat Bengaluru Mahanagara Palike" was merged into standard acronyms like *BBMP* to reduce label sparsity.
+*   **Deduplication**: Exact duplicate complaints were removed to prevent data leakage between train and validation splits.
+
+### 3.2 Exploratory Data Analysis
+EDA highlighted critical distributions and class imbalances:
+*   **Length Distribution**: Log-transformation analysis determined standard complaint lengths, establishing a range from 1 to 108 words (covering 95% of data).
+![Complaint Length Distribution](../charts_and_graphs/2.1a_complaint_length_distribution.png)
+![Complaint Length KDE](../charts_and_graphs/2.1b_complaint_length_kde.png)
+*   **Temporal Volume**: The volume of grievances showed consistent year-over-year growth from 2020 to 2024.
+![Grievance Volume Over Time](../charts_and_graphs/2.2_grievances_by_year.png)
+*   **Agency Burden**: The data was heavily skewed towards BBMP (~59.2% of all complaints), followed by BWSSB and BESCOM, necessitating techniques to handle severe class imbalance during model training.
+![BBMP Severity Year-over-Year](../charts_and_graphs/2.3_BBMP_severity_by_year.png)
 
 ---
 
-## 6. Staging & Git-Isolated Deployment Pipeline
+## 4. Phase 3: Civic Agency Classification
 
-To deploy the codebase to Hugging Face Spaces without exceeding Git LFS limit rules, we created a decoupled build script:
-1. **GitHub Actions Runner**: Executes unit tests in mock mode using `python -m pytest`.
-2. **Isolated Staging Area**: The pipeline creates a temporary directory `deploy_temp/`, copying only production files (`src/`, `requirements.txt`, `Dockerfile`, `.dockerignore`, `README.md`).
-3. **Fresh Git Init**: Initializes a fresh, history-less repository inside `deploy_temp/`. Since `models/` checkpoints, documentation graphs (`charts_and_graphs/`), and guides (`*.pdf`) are excluded, the staging folder is code-only (<100 KB).
-4. **Push**: Force-pushes the clean staging folder to Hugging Face Spaces using the repository's actions secret `HF_TOKEN`.
+The first core predictive task was routing complaints to the correct civic agency out of 8 possible categories.
+
+### 4.1 Classical ML Baselines
+Initial experiments explored classical NLP pipelines with TF-IDF and Optuna hyperparameter tuning:
+*   *Multinomial Naive Bayes*: 50.24% Macro F1
+![Multinomial NB Confusion Matrix](../charts_and_graphs/civic_agency_results/multinomial_nb_v2/3.8_optuna_search_confusion_matrix_multinomial_nb_1.png)
+*   *Logistic Regression*: 64.56% Macro F1
+![Logistic Regression Confusion Matrix](../charts_and_graphs/civic_agency_results/logistic_regression_v2/3.8_optuna_search_confusion_matrix_logisticregression_1.png)
+*   *LinearSVC*: 66.62% Macro F1
+![LinearSVC Confusion Matrix](../charts_and_graphs/civic_agency_results/linearsvc_v2/3.8_optuna_search_confusion_matrix_linearsvc_1.png)
+
+### 4.2 Deep Learning Transformers (Dataset V2)
+To capture deep semantic context, three base transformer architectures were fine-tuned via GCP Vertex AI:
+1.  **DistilBERT** (`distilbert-base-uncased`)
+![DistilBERT Validation](../models/civic_bodies/dataset_v2/DistilBERT/3.10_distilbert_fold_wise_validation_summary.png)
+2.  **RoBERTa** (`roberta-base`)
+![RoBERTa Validation](../models/civic_bodies/dataset_v2/RoBERTa/3.11_roberta_fold_wise_validation_summary.png)
+3.  **DeBERTa v3** (`microsoft/deberta-v3-base`)
+![DeBERTa v3 Validation](../models/civic_bodies/dataset_v2/DeBERTa_v3/3.12_deberta_fold_wise_validation_summary.png)
+
+![Model Comparison](../charts_and_graphs/civic_agency_results/3.15_model_comparison.png)
+
+A 5-Fold Cross Validation out-of-fold (OOF) strategy was employed to ensure robust evaluation without overfitting.
+
+### 4.3 Model Ensembling & Complementarity
+Instead of picking a single model, an in-depth **Complementarity Analysis** was run. It revealed that individual models disagreed on certain samples, leaving 1,208 rescuable samples (7.5%) and establishing a theoretical Oracle Ceiling of 95.65% Accuracy.
+
+![Complementarity Analysis](../charts_and_graphs/civic_agency_results/3.16_complementarity_analysis.png)
+
+*   **Hard-Label Stacking**: Trained an overarching ensemble on the discrete predictions of the three models.
+*   **Weighted Soft-Voting Ensemble (The Winner)**: By blending the softmax probability distributions of the models with custom weights (`DistilBERT=0.45`, `RoBERTa=0.25`, `DeBERTa v3=0.30`), the ensemble reached **93.06% Accuracy and 0.7576 Macro F1**.
+![Soft Voting Ensemble Performance](../charts_and_graphs/civic_agency_results/3.18_soft_stacking_per_agency_f1.png)
+
+### 4.4 Statistical Validation
+To prove the ensemble wasn't just incrementally better by chance, a **McNemar's Chi-Squared Test** was run (`../scripts/hypothesis_testing.py`) comparing the ensemble against the single RoBERTa model. The resulting p-value of $2.34 \times 10^{-15}$ confirmed the ensemble's superiority was statistically significant.
+
+![Hypothesis Test Comparison](../charts_and_graphs/civic_agency_results/3.19_hypothesis_test_comparison.png)
+
+---
+
+## 5. Phase 4: Severity Prioritization (Chain of Thought)
+
+The second objective was assessing how urgent the complaint is. Five distinct architectural trials were conducted to optimize severity prediction:
+
+1.  **T5 Joint Scoring**: A generative T5 model trained to output severity score and reasoning.
+![T5 Validation Summary](../models/severity/dataset_v2/trial_1_t5/4.1_t5_severity_validation_summary.png)
+2.  **Classical Regressors**: XGBoost models fit on TF-IDF vectors.
+![Classical Regression Comparison](../models/severity/dataset_v2/trial_2_regression/4.2_classical_regression_comparison.png)
+3.  **DistilBERT Regressor**: Sequence classification model with a linear regression head.
+4.  **XGBoost + CoT Reason**: XGBoost trained on concatenations of complaint description and T5-generated severity reason.
+5.  **RoBERTa / DeBERTa Classifier (The Winner)**: A text-pair classifier approach. 
+    *   **Step A**: A specialized T5-base model generates a natural language "reason" for the severity based on the text.
+    *   **Step B**: The original complaint text and the T5-generated reason are concatenated.
+    *   **Step C**: This context-enriched text pair is fed into a RoBERTa (or DeBERTa v3) classifier. 
+    *   **Result**: Reached **76.11% Accuracy and 0.7209 Macro F1**.
+![RoBERTa Validation Summary](../models/severity/dataset_v2/trial_5_roberta_classifier/4.5_roberta_severity_validation_summary.png)
+![DeBERTa Validation Summary](../models/severity/dataset_v2/deberta_v3_classifier/4.4_deberta_severity_validation_summary.png)
+
+---
+
+## 6. Phase 5: Production Backend Engineering (FastAPI)
+
+The inference logic was extracted from the notebooks and refactored into a scalable FastAPI application (`../src/inference/main.py`).
+
+*   **Model Initialization (`model_loader.py`)**: Utilizes Starlette Lifespan events to load all hefty PyTorch models (DistilBERT, RoBERTa, DeBERTa, and T5) into memory *once* upon server startup, isolating memory overhead.
+*   **Inference Routing (`predictor.py`)**: 
+    1. Receives raw complaint string.
+    2. Invokes the Civic Agency Soft-Voting Ensemble to get department probabilities.
+    3. Triggers the T5 Reason Generator to generate a chain-of-thought explanation.
+    4. Passes the description + explanation pair into the Severity Classifier.
+*   **Telemetry**: API requests, predictions, and processing times are logged to a Supabase PostgreSQL database for historical analytics.
+
+---
+
+## 7. Phase 6: Frontend Dashboard & Deployment
+
+### 7.1 Single Page Application (SPA)
+The user interface (`../src/inference/static/index.html`) was built natively without heavy node frameworks:
+*   **Styling**: Tailwind CSS via CDN was used to create a premium, glassmorphic layout.
+*   **Interactivity**: Vanilla JavaScript handles asynchronous API calls, updating the DOM dynamically.
+*   **Analytics**: Chart.js generates real-time graphs displaying severity distributions and department routing statistics pulled from the FastAPI `/api/analytics` endpoint.
+![Live Dashboard](../dashboard_screenshots/fastapi_dashboard.png)
+
+### 7.2 Containerization & CI/CD
+*   **Docker**: The entire FastAPI backend and SPA frontend are containerized via a single `Dockerfile`. It exposes port `7860`.
+*   **Testing**: Pytest (`../tests/test_api.py`) runs automated tests in an offline mock environment (avoiding huge model weight downloads during CI checks).
+*   **Hugging Face Spaces**: The application was deployed via a GitHub Actions pipeline (`../.github/workflows/deploy.yml`) to a Hugging Face Space running the Docker container.
