@@ -1,3 +1,13 @@
+---
+title: Grievance IQ
+emoji: 🏢
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 ## 1. AI-Powered Civic Grievance Classification System
 
 An NLP-based multi-output complaint routing system that automatically predicts:
@@ -111,58 +121,108 @@ FastAPI Backend (Prediction, Telemetry, and Analytics Endpoints)
       ↓
 Tailwind Glassmorphic SPA Dashboard (Real-time charts, table summary, and logs)
 
-## 8. Data Pipeline & Exploratory Data Analysis (EDA)
+## 8. Project Directory Structure
+
+```text
+ai_grievance_system/
+│
+├── configs/                  # Model configurations and parameter files
+├── data/                     # Data directory (raw, intermediate, processed)
+│   ├── raw/
+│   ├── intermediate/
+│   └── processed/
+│
+├── deployment/               # Deployment scripts and helper modules
+│   └── huggingface/
+│
+├── docs/                     # Project documentation
+├── models/                   # Unified model checkpoints (git-ignored)
+│   ├── civic_bodies/         # Civic agency classifier weights
+│   └── severity/             # Severity and reasoning weights
+│
+├── notebooks/                # Jupyter notebooks for EDA and training
+├── scripts/                  # Miscellaneous automation scripts (data fetch, DVC, etc.)
+│   └── scratch/              # Temporary scratch scripts (gitignore-protected)
+│
+├── src/                      # Production application source code
+│   ├── training/             # Training loop, pipeline, and data loader scripts
+│   ├── inference/            # Prediction logic, FastAPI server, and models loading
+│   │   ├── static/           # Dashboard frontend assets (index.html)
+│   │   ├── main.py           # FastAPI server entrypoint
+│   │   ├── model_loader.py   # Model weights loader with cloud fallback
+│   │   └── predictor.py      # Inference routing logic
+│   │
+│   ├── evaluation/           # Evaluation and validation metric calculators
+│   └── common/               # Shared utilities
+│       ├── db/               # Database handlers (postgres.py)
+│       ├── logger/           # Custom loggers (logger.py)
+│       └── schemas/          # Pydantic validation schemas (schemas.py)
+│
+├── tests/                    # Unit and integration test suites
+│
+├── .github/                  # GitHub Actions CI/CD workflows
+│   └── workflows/
+│       └── deploy.yml        # CI/CD deployment script
+│
+├── .gitignore                # Stricter production git exclusions
+├── .dockerignore             # Docker build exclusions
+├── Dockerfile                # Production Docker configuration
+├── requirements.txt          # Python package requirements
+└── README.md                 # Project README
+```
+
+## 9. Data Pipeline & Exploratory Data Analysis (EDA)
 
 The project uses civic grievance complaint data retrieved from Supabase PostgreSQL (16,107 raw records) and prepared through a rigorous cleaning and analysis pipeline corresponding to **Notebook Sections 1 & 2**:
 
-### 8.1 Data Cleaning & Standardisation (Notebook Section 1)
+### 9.1 Data Cleaning & Standardisation (Notebook Section 1)
 * **Missing Value Analysis**: Null checks are run across description and severity labels; rows missing mandatory targets are dropped.
 * **Civic Agency Standardisation**: Canonical names and acronyms are consolidated (e.g. merging Bruhat Bengaluru Mahanagara Palike into *BBMP*) and label sparsity is reduced by merging sparse categories.
 * **Deduplication**: Identical complaints are deduplicated and index is reset.
 
-### 8.2 Exploratory Data Analysis (Notebook Section 2)
+### 9.2 Exploratory Data Analysis (Notebook Section 2)
 
-#### 8.2.1 Complaint Length Distribution
+#### 9.2.1 Complaint Length Distribution
 * Word count is evaluated across severity levels.
 * We perform log-transformation analysis to detect outliers. We establish a lower bound of 1 word (discarding contextless character strings) and an upper bound of 108 words (covering 95% of complaints).
 
 ![Complaint Length Distribution](charts_and_graphs/2.1_complaint_length_distribution.png)
 ![Complaint Length KDE Comparison](charts_and_graphs/2.1b_complaint_length_kde.png)
 
-#### 8.2.2 Grievance Volume Over Time
+#### 9.2.2 Grievance Volume Over Time
 * Grievances are tracked year-over-year, indicating a rising volume of complaints between 2020 and 2024, with severity breakdown showing consistent ratios.
 
 ![Grievance Volume Over Time](charts_and_graphs/2.1_grievances_by_year.png)
 ![Grievances Severity Over Time](charts_and_graphs/2.2_grievances_by_year.png)
 
-#### 8.2.3 Complaint Distribution per Civic Agency
+#### 9.2.3 Complaint Distribution per Civic Agency
 * BBMP constitutes the majority of complaints (~59.2%), with BWSSB and BESCOM following. Distribution graphs identify highly burdened departments.
 
 ![BBMP Severity Year-over-Year](charts_and_graphs/2.3_BBMP_severity_by_year.png)
 
-## 9. Model Performance & Evaluation Pipeline (Dataset V2)
+## 10. Model Performance & Evaluation Pipeline (Dataset V2)
 
-This section maps the model training, ensembling, and validation workflow step-by-step as outlined in the [ai_grievance_system_fixed.ipynb](notebook/ai_grievance_system_fixed.ipynb) notebook.
+This section maps the model training, ensembling, and validation workflow step-by-step as outlined in the [ai_grievance_system_fixed.ipynb](notebooks/ai_grievance_system_fixed.ipynb) notebook.
 
 ---
 
-### 9.1 Data Preparation & Exploratory Analysis (Notebook Sections 1 & 2)
+### 10.1 Data Preparation & Exploratory Analysis (Notebook Sections 1 & 2)
 1. **Data Retrieval & Cleaning**: standardizes null entries and deduplicates complaints fetched from Supabase PostgreSQL.
 2. **Exploratory Data Analysis**: calculates complaint length distributions, volume over time, and distributions across agencies. 
 
 ---
 
-### 9.2 Civic Agency Classification (Notebook Section 3)
+### 10.2 Civic Agency Classification (Notebook Section 3)
 
-#### 9.2.1 Text Preprocessing & Augmentation Setup
+#### 10.2.1 Text Preprocessing & Augmentation Setup
 * Preprocessing cleans raw text (lowercasing, special characters/URL removal, tokenization, lemmatization, and stopword filtering).
 * Text augmentation handles class imbalance across the 8 civic agencies.
 
-#### 9.2.2 Classical ML Models
+#### 10.2.2 Classical ML Models
 * Models evaluated: MultinomialNB (50.24% Macro F1), Logistic Regression (64.56% Macro F1), and LinearSVC (66.62% Macro F1).
 * Optuna optimization is used for hyperparameter tuning.
 
-#### 9.2.3 Deep Learning Transformer Models (5-Fold CV OOF)
+#### 10.2.3 Deep Learning Transformer Models (5-Fold CV OOF)
 * **DistilBERT**: Fine-tunes pre-trained `distilbert-base-uncased` on Vertex AI.
   * Training Script: [scripts/distilbert_train_civic_v2.py](scripts/distilbert_train_civic_v2.py)
   * Vertex AI Submission Script: [scripts/submit_vertex_job_civic_v2.py](scripts/submit_vertex_job_civic_v2.py)
@@ -175,7 +235,7 @@ This section maps the model training, ensembling, and validation workflow step-b
 
 ![Model Comparison Heatmap](charts_and_graphs/civic_agency_results/3.15_model_comparison.png)
 
-#### 9.2.4 Complementarity Analysis & Stacking
+#### 10.2.4 Complementarity Analysis & Stacking
 * Sample-level disagreement shows **1,208 rescuable samples (7.5%)** leading to an Oracle Ceiling of **95.65% Accuracy**.
   * Visualization Chart: `charts_and_graphs/civic_agency_results/3.16_complementarity_analysis.png`
 * **Hard-Label Stacking Ensemble**: trained on one-hot features.
@@ -186,19 +246,19 @@ This section maps the model training, ensembling, and validation workflow step-b
   * Ensemble Script: [scripts/ensemble_soft_stacking.py](scripts/ensemble_soft_stacking.py)
   * Performance Charts: `3.18_soft_stacking_per_agency_f1.png` and `3.18_soft_stacking_delta_f1.png`
 
-#### 9.2.5 Statistical Validation (McNemar's Test)
+#### 10.2.5 Statistical Validation (McNemar's Test)
 * Runs a McNemar Chi-Squared Test comparing the WSV Ensemble against single RoBERTa, yielding a Chi-Sq of **62.77** and a p-value of **$2.34 \times 10^{-15}$** (highly statistically significant).
   * Significance Script: [scripts/hypothesis_testing.py](scripts/hypothesis_testing.py)
   * Validation Chart: `charts_and_graphs/civic_agency_results/3.19_hypothesis_test_comparison.png`
 
 ---
 
-### 9.3 Severity Classification (Notebook Sections 4 & 5 - Dataset V1)
+### 10.3 Severity Classification (Notebook Sections 4 & 5 - Dataset V1)
 * Dataset v1 severity classification uses classical algorithms, BiLSTM, and Joint DistilBERT regressor models.
 
 ---
 
-### 9.4 Severity Classification (Notebook Section 6 - Dataset V2)
+### 10.4 Severity Classification (Notebook Section 6 - Dataset V2)
 
 We run five different model architectures to evaluate complaint severity based on bucketized classes:
 
@@ -225,7 +285,7 @@ We run five different model architectures to evaluate complaint severity based o
   * DeBERTa v3 Training Script: [scripts/deberta_v3_classifier_severity_v2.py](scripts/deberta_v3_classifier_severity_v2.py)
   * DeBERTa v3 Vertex Submission: [scripts/submit_vertex_job_severity_deberta_v3.py](scripts/submit_vertex_job_severity_deberta_v3.py)
 
-## 10. Deployment
+## 11. Deployment
 
 The application is containerized using Docker and deployed on Hugging Face Spaces.
 
@@ -243,7 +303,7 @@ pip install -r requirements.txt
 
 # 2. Run the FastAPI SPA locally
 # (Loads production weights on startup. Set MOCK_MODELS=1 to run fast mock-based UI testing)
-uvicorn src.main:app --host 0.0.0.0 --port 7860
+python -m uvicorn src.inference.main:app --host 0.0.0.0 --port 7860
 
 # 3. Build & Run via Docker locally
 docker build -t ai-grievance-system:latest .
@@ -252,12 +312,12 @@ docker run -p 7860:7860 ai-grievance-system:latest
 
 Open [http://localhost:7860](http://localhost:7860) in your browser.
 
-## 11. Automated Testing & CI/CD
+## 12. Automated Testing & CI/CD
 
 We developed a unit test suite in [tests/test_api.py](tests/test_api.py) validating text cleaning, lemmatization/stopword filtering, model loader mock configuration, predictor ensembling logic, health check endpoints, predictions, and operational analytics logic.
 
 * **Test Framework**: Pytest
-* **CI Integration**: GitHub Actions workflow configured under `.github/workflows/pytest.yml`
+* **CI Integration**: GitHub Actions workflow configured under `.github/workflows/deploy.yml`
 * **Test Isolation**: Runs fully offline in mock mode to bypass weight downloads or credentials inside Github runner.
 * **Execution Command**:
   ```bash

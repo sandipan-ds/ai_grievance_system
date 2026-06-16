@@ -22,4 +22,4 @@ COPY . .
 
 EXPOSE 7860
 
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "7860"]
+CMD ["uvicorn", "src.inference.main:app", "--host", "0.0.0.0", "--port", "7860"]

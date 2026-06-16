@@ -45,10 +45,9 @@ data/processed/*
 .aider.input.history
 
 # models
-model_civic_bodies/
-model_severity/
+models/
 
 # other scripts
 check_data.py
-scripts/
-.github/
+scratch/
+
