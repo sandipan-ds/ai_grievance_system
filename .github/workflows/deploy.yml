@@ -54,5 +54,24 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
+          # Configure git
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          
+          # Stage clean code-only files in a separate directory
+          mkdir deploy_temp
+          cp -r src deploy_temp/
+          cp requirements.txt deploy_temp/
+          cp Dockerfile deploy_temp/
+          cp .dockerignore deploy_temp/
+          cp README.md deploy_temp/
+          
+          # Initialize fresh repository and commit
+          cd deploy_temp
+          git init -b main
+          git add .
+          git commit -m "Deploy production code-only release"
+          
+          # Authenticate and force-push to Hugging Face Space
           git remote add hf https://sandipanarnab:$HF_TOKEN@huggingface.co/spaces/sandipanarnab/grievance_iq
-          git push hf HEAD:main --force
+          git push hf main --force
