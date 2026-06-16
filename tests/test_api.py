@@ -7,9 +7,9 @@ from fastapi.testclient import TestClient
 # Set mock models env variable just to be double safe
 os.environ["MOCK_MODELS"] = "1"
 
-from src.main import app
-from src.ml.model_loader import load_model_bundle
-from src.ml.predictor import preprocess_text, predict_complaint, predict_department, predict_severity
+from src.inference.main import app
+from src.inference.model_loader import load_model_bundle
+from src.inference.predictor import preprocess_text, predict_complaint, predict_department, predict_severity
 
 
 @pytest.fixture(scope="module")

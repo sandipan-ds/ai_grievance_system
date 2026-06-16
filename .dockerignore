@@ -1,9 +1,5 @@
-# Backend code (not needed in frontend)
-src/
-
 # Model directories (backend has them)
-metrics_model_severity/
-metrics_model_civic_bodies/
+models/
 
 # Training artifacts
 checkpoints/
@@ -40,10 +36,15 @@ __pycache__/
 *.pyd
 .cache/
 
-# Jupyter / notebook
+# Jupyter / notebooks
+notebooks/
 notebook/
 *.ipynb
 .ipynb_checkpoints/
+
+# Exclude training and evaluation source code from production builds
+src/training/
+src/evaluation/
 
 # Git / DVC
 .git/
@@ -61,3 +62,4 @@ Dockerfile
 .dvcignore
 LICENSE
 README.md
+tests/

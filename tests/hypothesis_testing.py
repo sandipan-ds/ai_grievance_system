@@ -166,7 +166,9 @@ def main():
         }
         
         # Save results
-        json_out = BASE_DIR / "model_civic_bodies" / "dataset_v2" / "ensemble_stacking" / "hypothesis_test_results.json"
+        json_out_dir = BASE_DIR / "models" / "civic_bodies" / "dataset_v2" / "ensemble_stacking"
+        json_out_dir.mkdir(parents=True, exist_ok=True)
+        json_out = json_out_dir / "hypothesis_test_results.json"
         with open(json_out, "w", encoding="utf-8") as f:
             json.dump(stats_results, f, indent=4)
         print(f"\nSaved statistical results to: {json_out}")

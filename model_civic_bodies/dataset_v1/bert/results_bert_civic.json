@@ -1,0 +1,377 @@
+{
+    "task": "civic_agency",
+    "model": "bert-base-uncased",
+    "max_seq_len": 256,
+    "batch_size": 16,
+    "learning_rate": 2e-05,
+    "num_epochs": 200,
+    "num_folds": 5,
+    "avg_val_accuracy": 0.9170958351992834,
+    "avg_val_f1_macro": 0.8183500117736097,
+    "avg_val_f1_micro": 0.9170958351992834,
+    "avg_val_f1_weighted": 0.9157875814875226,
+    "avg_val_precision": 0.8444471465456147,
+    "avg_val_recall": 0.8026746614175112,
+    "per_fold_metrics": [
+        {
+            "fold": 0,
+            "val_accuracy": 0.9204545454545454,
+            "val_f1_macro": 0.8335005714860184,
+            "val_f1_micro": 0.9204545454545454,
+            "val_f1_weighted": 0.9174472599444071,
+            "val_precision": 0.8747395818300245,
+            "val_recall": 0.8034364655250603,
+            "per_class_report": {
+                "BBMP": {
+                    "precision": 0.9380530973451328,
+                    "recall": 0.9734171097148381,
+                    "f1-score": 0.9554079696394687,
+                    "support": 2069.0
+                },
+                "BCP": {
+                    "precision": 0.8571428571428571,
+                    "recall": 0.5660377358490566,
+                    "f1-score": 0.6818181818181818,
+                    "support": 53.0
+                },
+                "BESCOM": {
+                    "precision": 0.8333333333333334,
+                    "recall": 0.8490566037735849,
+                    "f1-score": 0.8411214953271028,
+                    "support": 53.0
+                },
+                "BTP": {
+                    "precision": 0.7986111111111112,
+                    "recall": 0.6647398843930635,
+                    "f1-score": 0.7255520504731862,
+                    "support": 173.0
+                },
+                "BWSSB": {
+                    "precision": 0.9041095890410958,
+                    "recall": 0.7630057803468208,
+                    "f1-score": 0.8275862068965517,
+                    "support": 173.0
+                },
+                "KSFES": {
+                    "precision": 1.0,
+                    "recall": 0.9375,
+                    "f1-score": 0.967741935483871,
+                    "support": 16.0
+                },
+                "KSPCB": {
+                    "precision": 0.7777777777777778,
+                    "recall": 0.7325581395348837,
+                    "f1-score": 0.7544910179640718,
+                    "support": 86.0
+                },
+                "Transport": {
+                    "precision": 0.8888888888888888,
+                    "recall": 0.9411764705882353,
+                    "f1-score": 0.9142857142857143,
+                    "support": 17.0
+                },
+                "accuracy": 0.9204545454545454,
+                "macro avg": {
+                    "precision": 0.8747395818300245,
+                    "recall": 0.8034364655250603,
+                    "f1-score": 0.8335005714860184,
+                    "support": 2640.0
+                },
+                "weighted avg": {
+                    "precision": 0.9178021884957004,
+                    "recall": 0.9204545454545454,
+                    "f1-score": 0.9174472599444071,
+                    "support": 2640.0
+                }
+            }
+        },
+        {
+            "fold": 1,
+            "val_accuracy": 0.9082985979537703,
+            "val_f1_macro": 0.8193014852482413,
+            "val_f1_micro": 0.9082985979537703,
+            "val_f1_weighted": 0.9080070257847833,
+            "val_precision": 0.8436877111116954,
+            "val_recall": 0.8033967981313008,
+            "per_class_report": {
+                "BBMP": {
+                    "precision": 0.9498069498069498,
+                    "recall": 0.9511841469308845,
+                    "f1-score": 0.9504950495049505,
+                    "support": 2069.0
+                },
+                "BCP": {
+                    "precision": 0.6808510638297872,
+                    "recall": 0.6037735849056604,
+                    "f1-score": 0.64,
+                    "support": 53.0
+                },
+                "BESCOM": {
+                    "precision": 0.9,
+                    "recall": 0.8653846153846154,
+                    "f1-score": 0.8823529411764706,
+                    "support": 52.0
+                },
+                "BTP": {
+                    "precision": 0.6502242152466368,
+                    "recall": 0.838150289017341,
+                    "f1-score": 0.7323232323232324,
+                    "support": 173.0
+                },
+                "BWSSB": {
+                    "precision": 0.8609271523178808,
+                    "recall": 0.7514450867052023,
+                    "f1-score": 0.8024691358024691,
+                    "support": 173.0
+                },
+                "KSFES": {
+                    "precision": 1.0,
+                    "recall": 1.0,
+                    "f1-score": 1.0,
+                    "support": 16.0
+                },
+                "KSPCB": {
+                    "precision": 0.7076923076923077,
+                    "recall": 0.5348837209302325,
+                    "f1-score": 0.609271523178808,
+                    "support": 86.0
+                },
+                "Transport": {
+                    "precision": 1.0,
+                    "recall": 0.8823529411764706,
+                    "f1-score": 0.9375,
+                    "support": 17.0
+                },
+                "accuracy": 0.9082985979537703,
+                "macro avg": {
+                    "precision": 0.8436877111116954,
+                    "recall": 0.8033967981313008,
+                    "f1-score": 0.8193014852482413,
+                    "support": 2639.0
+                },
+                "weighted avg": {
+                    "precision": 0.9106958736581121,
+                    "recall": 0.9082985979537703,
+                    "f1-score": 0.9080070257847833,
+                    "support": 2639.0
+                }
+            }
+        },
+        {
+            "fold": 2,
+            "val_accuracy": 0.9223190602500947,
+            "val_f1_macro": 0.8243134807808025,
+            "val_f1_micro": 0.9223190602500947,
+            "val_f1_weighted": 0.9198287463207736,
+            "val_precision": 0.844164228070359,
+            "val_recall": 0.8144401281253727,
+            "per_class_report": {
+                "BBMP": {
+                    "precision": 0.9450187969924813,
+                    "recall": 0.971967133881102,
+                    "f1-score": 0.9583035501548726,
+                    "support": 2069.0
+                },
+                "BCP": {
+                    "precision": 0.7608695652173914,
+                    "recall": 0.660377358490566,
+                    "f1-score": 0.7070707070707071,
+                    "support": 53.0
+                },
+                "BESCOM": {
+                    "precision": 0.9166666666666666,
+                    "recall": 0.8461538461538461,
+                    "f1-score": 0.88,
+                    "support": 52.0
+                },
+                "BTP": {
+                    "precision": 0.8133333333333334,
+                    "recall": 0.7052023121387283,
+                    "f1-score": 0.7554179566563467,
+                    "support": 173.0
+                },
+                "BWSSB": {
+                    "precision": 0.8641975308641975,
+                    "recall": 0.8092485549132948,
+                    "f1-score": 0.835820895522388,
+                    "support": 173.0
+                },
+                "KSFES": {
+                    "precision": 1.0,
+                    "recall": 1.0,
+                    "f1-score": 1.0,
+                    "support": 16.0
+                },
+                "KSPCB": {
+                    "precision": 0.7575757575757576,
+                    "recall": 0.5813953488372093,
+                    "f1-score": 0.6578947368421053,
+                    "support": 86.0
+                },
+                "Transport": {
+                    "precision": 0.6956521739130435,
+                    "recall": 0.9411764705882353,
+                    "f1-score": 0.8,
+                    "support": 17.0
+                },
+                "accuracy": 0.9223190602500947,
+                "macro avg": {
+                    "precision": 0.844164228070359,
+                    "recall": 0.8144401281253727,
+                    "f1-score": 0.8243134807808025,
+                    "support": 2639.0
+                },
+                "weighted avg": {
+                    "precision": 0.9194494453258211,
+                    "recall": 0.9223190602500947,
+                    "f1-score": 0.9198287463207736,
+                    "support": 2639.0
+                }
+            }
+        },
+        {
+            "fold": 3,
+            "val_accuracy": 0.913982569154983,
+            "val_f1_macro": 0.8061340147467829,
+            "val_f1_micro": 0.913982569154983,
+            "val_f1_weighted": 0.9143859300765191,
+            "val_precision": 0.8211066736510917,
+            "val_recall": 0.8011612484862602,
+            "per_class_report": {
+                "BBMP": {
+                    "precision": 0.9566065333983422,
+                    "recall": 0.9487427466150871,
+                    "f1-score": 0.9526584122359796,
+                    "support": 2068.0
+                },
+                "BCP": {
+                    "precision": 0.7777777777777778,
+                    "recall": 0.5283018867924528,
+                    "f1-score": 0.6292134831460674,
+                    "support": 53.0
+                },
+                "BESCOM": {
+                    "precision": 0.8363636363636363,
+                    "recall": 0.8846153846153846,
+                    "f1-score": 0.8598130841121495,
+                    "support": 52.0
+                },
+                "BTP": {
+                    "precision": 0.7900552486187845,
+                    "recall": 0.8265895953757225,
+                    "f1-score": 0.807909604519774,
+                    "support": 173.0
+                },
+                "BWSSB": {
+                    "precision": 0.7828571428571428,
+                    "recall": 0.791907514450867,
+                    "f1-score": 0.7873563218390804,
+                    "support": 173.0
+                },
+                "KSFES": {
+                    "precision": 0.9285714285714286,
+                    "recall": 0.8125,
+                    "f1-score": 0.8666666666666667,
+                    "support": 16.0
+                },
+                "KSPCB": {
+                    "precision": 0.6216216216216216,
+                    "recall": 0.7931034482758621,
+                    "f1-score": 0.696969696969697,
+                    "support": 87.0
+                },
+                "Transport": {
+                    "precision": 0.875,
+                    "recall": 0.8235294117647058,
+                    "f1-score": 0.8484848484848485,
+                    "support": 17.0
+                },
+                "accuracy": 0.913982569154983,
+                "macro avg": {
+                    "precision": 0.8211066736510917,
+                    "recall": 0.8011612484862602,
+                    "f1-score": 0.8061340147467829,
+                    "support": 2639.0
+                },
+                "weighted avg": {
+                    "precision": 0.9165981470422366,
+                    "recall": 0.913982569154983,
+                    "f1-score": 0.9143859300765191,
+                    "support": 2639.0
+                }
+            }
+        },
+        {
+            "fold": 4,
+            "val_accuracy": 0.9204244031830239,
+            "val_f1_macro": 0.8085005066062034,
+            "val_f1_micro": 0.9204244031830239,
+            "val_f1_weighted": 0.9192689453111291,
+            "val_precision": 0.8385375380649027,
+            "val_recall": 0.7909386668195622,
+            "per_class_report": {
+                "BBMP": {
+                    "precision": 0.9561234329797492,
+                    "recall": 0.9588974854932302,
+                    "f1-score": 0.957508450024143,
+                    "support": 2068.0
+                },
+                "BCP": {
+                    "precision": 0.7272727272727273,
+                    "recall": 0.46153846153846156,
+                    "f1-score": 0.5647058823529412,
+                    "support": 52.0
+                },
+                "BESCOM": {
+                    "precision": 0.7301587301587301,
+                    "recall": 0.8679245283018868,
+                    "f1-score": 0.7931034482758621,
+                    "support": 53.0
+                },
+                "BTP": {
+                    "precision": 0.7552083333333334,
+                    "recall": 0.8430232558139535,
+                    "f1-score": 0.7967032967032966,
+                    "support": 172.0
+                },
+                "BWSSB": {
+                    "precision": 0.8390804597701149,
+                    "recall": 0.8390804597701149,
+                    "f1-score": 0.8390804597701149,
+                    "support": 174.0
+                },
+                "KSFES": {
+                    "precision": 1.0,
+                    "recall": 0.8823529411764706,
+                    "f1-score": 0.9375,
+                    "support": 17.0
+                },
+                "KSPCB": {
+                    "precision": 0.7671232876712328,
+                    "recall": 0.6511627906976745,
+                    "f1-score": 0.7044025157232704,
+                    "support": 86.0
+                },
+                "Transport": {
+                    "precision": 0.9333333333333333,
+                    "recall": 0.8235294117647058,
+                    "f1-score": 0.875,
+                    "support": 17.0
+                },
+                "accuracy": 0.9204244031830239,
+                "macro avg": {
+                    "precision": 0.8385375380649027,
+                    "recall": 0.7909386668195622,
+                    "f1-score": 0.8085005066062034,
+                    "support": 2639.0
+                },
+                "weighted avg": {
+                    "precision": 0.9202406050240401,
+                    "recall": 0.9204244031830239,
+                    "f1-score": 0.9192689453111291,
+                    "support": 2639.0
+                }
+            }
+        }
+    ]
+}
