@@ -42,12 +42,11 @@ jobs:
         run: |
           python -m nltk.downloader wordnet omw-1.4 stopwords
 
-      # 5. Run Unit Tests (using mock models to avoid downloading heavy weights)
       - name: Run Unit Tests
         env:
           MOCK_MODELS: "1"
         run: |
-          pytest
+          python -m pytest
 
       # 6. Push to Hugging Face Spaces (Only runs on push to main/master, not on pull requests)
       - name: Deploy to Hugging Face Spaces
