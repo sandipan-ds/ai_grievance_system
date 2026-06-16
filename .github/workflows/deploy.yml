@@ -38,6 +38,10 @@ jobs:
           pip install -r requirements.txt
           pip install pytest httpx
 
+      - name: Download NLTK data
+        run: |
+          python -m nltk.downloader wordnet omw-1.4 stopwords
+
       # 5. Run Unit Tests (using mock models to avoid downloading heavy weights)
       - name: Run Unit Tests
         env:

@@ -28,6 +28,10 @@ jobs:
         # Install core project dependencies
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
+    - name: Download NLTK data
+      run: |
+        python -m nltk.downloader wordnet omw-1.4 stopwords
+
     - name: Run Unit Tests with Pytest
       env:
         MOCK_MODELS: "1"
