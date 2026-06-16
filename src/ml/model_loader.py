@@ -1,75 +1,204 @@
 from __future__ import annotations
 
-import re
+import os
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-import joblib
 import torch
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
+import torch.nn as nn
+from transformers import (
+    AutoModelForSequenceClassification,
+    AutoTokenizer,
+    T5ForConditionalGeneration,
+    T5Tokenizer,
+    RobertaModel,
+    RobertaTokenizer,
+)
 
-
+# Root directory configuration
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DEPARTMENT_MODEL_DIR = PROJECT_ROOT / "metrics_model_civic_bodies" / "linearsvc"
-SEVERITY_MODEL_DIR = PROJECT_ROOT / "metrics_model_severity" / "distilbert" / "production_model_1"
-SEVERITY_MODEL_FALLBACK_DIR = PROJECT_ROOT / "metrics_model_severity" / "distilbert" / "production_model"
+
+# Paths to the model directories (best folds based on cross-validation metrics)
+DISTILBERT_DIR = PROJECT_ROOT / "model_civic_bodies" / "dataset_v2" / "DistilBERT" / "fold_3" / "model"
+ROBERTA_CIVIC_DIR = PROJECT_ROOT / "model_civic_bodies" / "dataset_v2" / "RoBERTa" / "fold_3" / "model"
+DEBERTA_CIVIC_DIR = PROJECT_ROOT / "model_civic_bodies" / "dataset_v2" / "DeBERTa_v3" / "fold_3" / "model"
+
+T5_SEVERITY_DIR = PROJECT_ROOT / "model_severity" / "dataset_v2" / "t5_base_reason" / "fold_0" / "model"
+ROBERTA_SEVERITY_DIR = PROJECT_ROOT / "model_severity" / "dataset_v2" / "trial_5_roberta_classifier" / "fold_0" / "model"
+
+
+class RoBERTaClassifier(nn.Module):
+    """Custom PyTorch module matching the definition in the training notebook (Trial 5)."""
+    def __init__(self, model_name="roberta-base", dropout=0.1, num_classes=5, is_mock=False):
+        super().__init__()
+        self.is_mock = is_mock
+        if not is_mock:
+            self.roberta = RobertaModel.from_pretrained(model_name)
+            self.dropout = nn.Dropout(dropout)
+            self.classifier = nn.Linear(self.roberta.config.hidden_size, num_classes)
+        else:
+            # Setup a minimal linear layer for matching weights structure
+            self.classifier = nn.Linear(10, num_classes)
+
+    def forward(self, input_ids, attention_mask):
+        if self.is_mock:
+            return torch.zeros((input_ids.shape[0], 5), dtype=torch.float32)
+        outputs = self.roberta(input_ids=input_ids, attention_mask=attention_mask)
+        pooled_output = outputs.pooler_output
+        pooled_output = self.dropout(pooled_output)
+        logits = self.classifier(pooled_output)
+        return logits
 
 
 @dataclass
 class ModelBundle:
-    department_model: object
-    department_model_path: Path
-    severity_model: AutoModelForSequenceClassification
-    severity_tokenizer: AutoTokenizer
-    severity_label_encoder: object
-    severity_device: str
-    severity_model_path: Path
+    # Civic Agency models (WSV)
+    distilbert_model: AutoModelForSequenceClassification | object
+    distilbert_tokenizer: AutoTokenizer | object
+    roberta_civic_model: AutoModelForSequenceClassification | object
+    roberta_civic_tokenizer: AutoTokenizer | object
+    deberta_model: AutoModelForSequenceClassification | object
+    deberta_tokenizer: AutoTokenizer | object
+    
+    # Severity models
+    t5_model: T5ForConditionalGeneration | object
+    t5_tokenizer: T5Tokenizer | object
+    severity_classifier: RoBERTaClassifier
+    severity_tokenizer: RobertaTokenizer | object
+    
+    # Device configuration
+    device: str
+    is_mock: bool
 
 
-def _latest_joblib_file(model_dir: Path) -> Path:
-    files = list(model_dir.glob("*.joblib"))
-    if not files:
-        raise FileNotFoundError(f"No .joblib file found in {model_dir}")
+class MockTokenizer:
+    """Mock tokenizer to avoid HF network downloads during CI/unit testing."""
+    def __init__(self, *args, **kwargs):
+        pass
 
-    def version_key(path: Path) -> tuple[int, str]:
-        match = re.search(r"_v(\d+)\.joblib$", path.name)
-        version = int(match.group(1)) if match else -1
-        return version, path.name
+    def __call__(self, text, text_pair=None, **kwargs):
+        seq_len = 16
+        if isinstance(text, list):
+            batch_size = len(text)
+        else:
+            batch_size = 1
+        return {
+            "input_ids": torch.zeros((batch_size, seq_len), dtype=torch.long),
+            "attention_mask": torch.ones((batch_size, seq_len), dtype=torch.long),
+        }
 
-    return sorted(files, key=version_key)[-1]
+    def encode(self, *args, **kwargs):
+        return [1, 2, 3]
+
+    def decode(self, *args, **kwargs):
+        return "mocked generated severity reason"
+
+    def batch_decode(self, sequences, *args, **kwargs):
+        return ["mocked generated severity reason" for _ in sequences]
 
 
-def _resolve_severity_model_dir() -> Path:
-    if SEVERITY_MODEL_DIR.exists():
-        return SEVERITY_MODEL_DIR
-    if SEVERITY_MODEL_FALLBACK_DIR.exists():
-        return SEVERITY_MODEL_FALLBACK_DIR
-    raise FileNotFoundError(
-        "Severity production model folder not found. "
-        f"Checked {SEVERITY_MODEL_DIR} and {SEVERITY_MODEL_FALLBACK_DIR}."
-    )
+class MockModel(nn.Module):
+    """Mock model to avoid loading heavy weights during CI/unit testing."""
+    def __init__(self, num_labels=8):
+        super().__init__()
+        self.num_labels = num_labels
+        self.config = type("Config", (), {"hidden_size": 768})()
+
+    def forward(self, input_ids, attention_mask, **kwargs):
+        batch_size = input_ids.shape[0]
+        class Outputs:
+            def __init__(self, num_labels, batch_size):
+                self.logits = torch.zeros((batch_size, num_labels), dtype=torch.float32)
+                # Assign highest logit to label 0
+                self.logits[:, 0] = 5.0
+        return Outputs(self.num_labels, batch_size)
+
+    def generate(self, input_ids, **kwargs):
+        batch_size = input_ids.shape[0]
+        return torch.zeros((batch_size, 5), dtype=torch.long)
 
 
 def load_model_bundle() -> ModelBundle:
-    department_model_path = _latest_joblib_file(DEPARTMENT_MODEL_DIR)
-    department_bundle = joblib.load(department_model_path)
-    department_model = department_bundle["model"] if isinstance(department_bundle, dict) else department_bundle
+    """Loads all models. Automatically loads mock models if in a CI/testing environment."""
+    # Check if we should use mock models (useful for fast pytest runs on GitHub Actions without GCS credentials)
+    use_mock = "pytest" in sys.modules or os.getenv("MOCK_MODELS") == "1"
 
-    severity_model_path = _resolve_severity_model_dir()
-    severity_tokenizer = AutoTokenizer.from_pretrained(severity_model_path)
-    severity_model = AutoModelForSequenceClassification.from_pretrained(severity_model_path)
-    severity_label_encoder = joblib.load(severity_model_path / "label_encoder.joblib")
+    if use_mock:
+        print("[INFO] Model loader: Pytest/Mock environment detected. Loading lightweight mock models.")
+        return ModelBundle(
+            distilbert_model=MockModel(num_labels=8),
+            distilbert_tokenizer=MockTokenizer(),
+            roberta_civic_model=MockModel(num_labels=8),
+            roberta_civic_tokenizer=MockTokenizer(),
+            deberta_model=MockModel(num_labels=8),
+            deberta_tokenizer=MockTokenizer(),
+            t5_model=MockModel(),
+            t5_tokenizer=MockTokenizer(),
+            severity_classifier=RoBERTaClassifier(is_mock=True),
+            severity_tokenizer=MockTokenizer(),
+            device="cpu",
+            is_mock=True,
+        )
 
-    severity_device = "cuda" if torch.cuda.is_available() else "cpu"
-    severity_model.to(severity_device)
-    severity_model.eval()
+    # Determine CPU or GPU device
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"[INFO] Model loader: Initializing production models on device '{device}'...")
+
+    # Load Civic Agency models (Fold 3)
+    distilbert_tokenizer = AutoTokenizer.from_pretrained(
+        str(DISTILBERT_DIR / "tokenizer") if (DISTILBERT_DIR / "tokenizer").exists() else "distilbert-base-uncased",
+        use_fast=False,
+    )
+    distilbert_model = AutoModelForSequenceClassification.from_pretrained(str(DISTILBERT_DIR)).to(device)
+    distilbert_model.eval()
+
+    roberta_civic_tokenizer = AutoTokenizer.from_pretrained(
+        str(ROBERTA_CIVIC_DIR / "tokenizer") if (ROBERTA_CIVIC_DIR / "tokenizer").exists() else "roberta-base",
+        use_fast=False,
+    )
+    roberta_civic_model = AutoModelForSequenceClassification.from_pretrained(str(ROBERTA_CIVIC_DIR)).to(device)
+    roberta_civic_model.eval()
+
+    deberta_tokenizer = AutoTokenizer.from_pretrained(
+        str(DEBERTA_CIVIC_DIR / "tokenizer") if (DEBERTA_CIVIC_DIR / "tokenizer").exists() else "microsoft/deberta-v3-base",
+        use_fast=False,
+    )
+    deberta_model = AutoModelForSequenceClassification.from_pretrained(str(DEBERTA_CIVIC_DIR)).to(device)
+    deberta_model.eval()
+
+    # Load T5 Severity Reason Generator (Fold 0)
+    t5_tokenizer = T5Tokenizer.from_pretrained(
+        str(T5_SEVERITY_DIR / "tokenizer") if (T5_SEVERITY_DIR / "tokenizer").exists() else "t5-base",
+        use_fast=False,
+    )
+    t5_model = T5ForConditionalGeneration.from_pretrained(str(T5_SEVERITY_DIR)).to(device)
+    t5_model.eval()
+
+    # Load RoBERTa Severity Classifier (Fold 0)
+    severity_tokenizer = RobertaTokenizer.from_pretrained(
+        str(ROBERTA_SEVERITY_DIR / "tokenizer") if (ROBERTA_SEVERITY_DIR / "tokenizer").exists() else "roberta-base",
+        use_fast=False,
+    )
+    # Instantiate custom classifier and load weight dictionary
+    severity_classifier = RoBERTaClassifier("roberta-base", num_classes=5).to(device)
+    state_dict = torch.load(ROBERTA_SEVERITY_DIR / "pytorch_model.pt", map_location=device)
+    severity_classifier.load_state_dict(state_dict)
+    severity_classifier.eval()
+
+    print("[INFO] Model loader: All production models loaded successfully.")
 
     return ModelBundle(
-        department_model=department_model,
-        department_model_path=department_model_path,
-        severity_model=severity_model,
+        distilbert_model=distilbert_model,
+        distilbert_tokenizer=distilbert_tokenizer,
+        roberta_civic_model=roberta_civic_model,
+        roberta_civic_tokenizer=roberta_civic_tokenizer,
+        deberta_model=deberta_model,
+        deberta_tokenizer=deberta_tokenizer,
+        t5_model=t5_model,
+        t5_tokenizer=t5_tokenizer,
+        severity_classifier=severity_classifier,
         severity_tokenizer=severity_tokenizer,
-        severity_label_encoder=severity_label_encoder,
-        severity_device=severity_device,
-        severity_model_path=severity_model_path,
+        device=device,
+        is_mock=False,
     )

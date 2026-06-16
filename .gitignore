@@ -43,3 +43,12 @@ data/processed/*
 .aider*
 .aider.chat.history.md
 .aider.input.history
+
+# models
+model_civic_bodies/
+model_severity/
+
+# other scripts
+check_data.py
+scripts/
+.github/

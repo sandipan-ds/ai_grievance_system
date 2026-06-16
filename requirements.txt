@@ -35,3 +35,8 @@ openai
 google-generativeai
 ipywidgets
 
+# Testing & Deployment
+pytest
+httpx
+jinja2
+scipy

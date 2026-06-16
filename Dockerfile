@@ -15,8 +15,11 @@ WORKDIR $HOME/app
 COPY requirements.txt .
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
+# Pre-download NLTK data into the directory expected by the application
+RUN python -m nltk.downloader -d /home/user/app/data/nltk wordnet omw-1.4 stopwords
+
 COPY . .
 
 EXPOSE 7860
 
-CMD ["streamlit", "run", "streamlit.py", "--server.port=7860", "--server.address=0.0.0.0"]
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "7860"]
