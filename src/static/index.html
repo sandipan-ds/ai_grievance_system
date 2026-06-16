@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grievance IQ — Complaint Routing & Escalation Dashboard</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            background: 
+                radial-gradient(circle at top left, rgba(15, 118, 110, 0.08), transparent 25%),
+                radial-gradient(circle at top right, rgba(18, 51, 92, 0.08), transparent 25%),
+                linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.04);
+            transition: all 0.2s ease-in-out;
+        }
+        .glass-card:hover {
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.08);
+            transform: translateY(-2px);
+        }
+        .hero-banner {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f766e 100%);
+            box-shadow: 0 20px 40px -15px rgba(15, 118, 110, 0.25);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 99px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 antialiased p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto space-y-6">
+        
+        <!-- Header & Hero -->
+        <header class="hero-banner text-white rounded-2xl p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div class="space-y-3">
+                <div class="flex items-center gap-2 text-teal-400 text-xs font-bold uppercase tracking-widest">
+                    <i data-lucide="shield-check" class="w-4 h-4"></i> Municipal Control Center
+                </div>
+                <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight">Grievance IQ Portal</h1>
+                <p class="text-slate-300 max-w-2xl text-sm md:text-base leading-relaxed">
+                    Automated complaint department classification and severity routing. Blended Soft-Voting Ensemble (93.06% Accuracy) and sequential T5 + RoBERTa severity ranking.
+                </p>
+            </div>
+            
+            <div class="glass-card bg-white/10 border-white/20 text-white p-5 rounded-xl flex flex-col gap-2 min-w-[240px]">
+                <div class="flex items-center justify-between text-sm">
+                    <span class="text-slate-300">Backend Server:</span>
+                    <span id="backend-status" class="flex items-center gap-1.5 font-semibold text-rose-400">
+                        <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></span> Offline
+                    </span>
+                </div>
+                <div class="flex items-center justify-between text-sm">
+                    <span class="text-slate-300">Pipeline Mode:</span>
+                    <span id="pipeline-mode" class="font-mono text-slate-200">Unknown</span>
+                </div>
+                <div class="flex items-center justify-between text-sm">
+                    <span class="text-slate-300">Active Device:</span>
+                    <span id="backend-device" class="font-mono text-slate-200">CPU</span>
+                </div>
+                <button onclick="checkBackendHealth()" class="mt-2 w-full py-1.5 px-3 bg-white/10 hover:bg-white/20 border border-white/10 hover:border-white/20 text-xs font-semibold rounded-lg transition flex items-center justify-center gap-1">
+                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Recheck Server Status
+                </button>
+            </div>
+        </header>
+
+        <!-- KPI Cards -->
+        <section class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="glass-card rounded-2xl p-5 flex items-center gap-4">
+                <div class="p-3.5 bg-blue-500/10 text-blue-600 rounded-xl">
+                    <i data-lucide="file-text" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="text-slate-400 text-xs font-bold uppercase tracking-wider">Total Complaints</h3>
+                    <p id="kpi-total" class="text-2xl font-black text-slate-800">16,107</p>
+                </div>
+            </div>
+            
+            <div class="glass-card rounded-2xl p-5 flex items-center gap-4">
+                <div class="p-3.5 bg-amber-500/10 text-amber-600 rounded-xl">
+                    <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="text-slate-400 text-xs font-bold uppercase tracking-wider">Active Complaints</h3>
+                    <p id="kpi-active" class="text-2xl font-black text-slate-800">6,200</p>
+                </div>
+            </div>
+            
+            <div class="glass-card rounded-2xl p-5 flex items-center gap-4">
+                <div class="p-3.5 bg-rose-500/10 text-rose-600 rounded-xl">
+                    <i data-lucide="flame" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="text-slate-400 text-xs font-bold uppercase tracking-wider">Critical Complaints</h3>
+                    <p id="kpi-critical" class="text-2xl font-black text-slate-800">2,800</p>
+                </div>
+            </div>
+            
+            <div class="glass-card rounded-2xl p-5 flex items-center gap-4">
+                <div class="p-3.5 bg-emerald-500/10 text-emerald-600 rounded-xl">
+                    <i data-lucide="check-circle" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="text-slate-400 text-xs font-bold uppercase tracking-wider">Departments Covered</h3>
+                    <p id="kpi-depts" class="text-2xl font-black text-slate-800">8</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Operational Grid -->
+        <main class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- Column 1: Register Complaint Form -->
+            <section class="lg:col-span-5 flex flex-col gap-6">
+                <div class="glass-card rounded-2xl p-6 flex-1 flex flex-col justify-between">
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                <i data-lucide="edit-3" class="text-teal-600"></i> Register New Complaint
+                            </h2>
+                            <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-mono font-bold">V2.0 Pipeline</span>
+                        </div>
+                        <p class="text-slate-500 text-xs leading-relaxed">
+                            Submit a new grievance in natural language. The ensembled routing classifier and sequential severity pipeline will map responsible departments and prioritize.
+                        </p>
+                        
+                        <form id="complaint-form" class="space-y-4 pt-2">
+                            <div class="space-y-1.5">
+                                <label for="complaint-text" class="text-xs font-bold text-slate-500 uppercase">Complaint Description</label>
+                                <textarea id="complaint-text" rows="8" maxlength="1000" required placeholder="Describe the grievance in clear detail (e.g. Broken water pipe leaking in Indiranagar Sector 2...)" class="w-full p-3.5 bg-slate-50 hover:bg-slate-100 focus:bg-white text-slate-800 border border-slate-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-200/50 rounded-xl text-sm font-medium transition duration-200 outline-none resize-none"></textarea>
+                            </div>
+                            
+                            <button type="submit" id="btn-submit" class="w-full py-3.5 bg-teal-600 hover:bg-teal-700 active:scale-[0.98] text-white font-bold rounded-xl shadow-lg shadow-teal-500/25 hover:shadow-teal-500/40 text-sm transition duration-200 flex items-center justify-center gap-2">
+                                <i data-lucide="send" class="w-4 h-4"></i> Run Predictive Routing
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <!-- Prediction Result (Hidden by default) -->
+                    <div id="prediction-result" class="hidden mt-6 pt-6 border-t border-slate-100 flex flex-col gap-4">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase">Analysis Output</h4>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="bg-teal-50 border border-teal-100 p-3.5 rounded-xl">
+                                <span class="text-[10px] text-teal-600 font-bold uppercase tracking-wider">Assigned Agency</span>
+                                <p id="result-dept" class="text-lg font-black text-teal-800">BBMP</p>
+                            </div>
+                            <div id="result-severity-card" class="bg-rose-50 border border-rose-100 p-3.5 rounded-xl">
+                                <span class="text-[10px] text-rose-600 font-bold uppercase tracking-wider">Severity Level</span>
+                                <p id="result-severity" class="text-lg font-black text-rose-800">Critical</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Column 2: Recent Log Entries -->
+            <section class="lg:col-span-7">
+                <div class="glass-card rounded-2xl p-6 h-full flex flex-col gap-4">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <i data-lucide="clipboard-list" class="text-slate-600"></i> Prediction & Telemetry Log
+                        </h2>
+                        <span class="text-[10px] text-slate-400 font-medium font-mono">Showing last 15</span>
+                    </div>
+                    
+                    <div class="overflow-y-auto max-h-[380px] pr-2 space-y-3 flex-1" id="recent-log-container">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Charts Dashboard Section -->
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            <div class="glass-card rounded-2xl p-6">
+                <div class="flex items-center gap-2 mb-4">
+                    <i data-lucide="bar-chart-3" class="text-teal-600"></i>
+                    <h3 class="text-base font-bold text-slate-800">Severity Distribution Per Department</h3>
+                </div>
+                <div class="relative h-[320px]">
+                    <canvas id="chart-department-severity"></canvas>
+                </div>
+            </div>
+            
+            <div class="glass-card rounded-2xl p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <div class="flex items-center gap-2 mb-4">
+                        <i data-lucide="pie-chart" class="text-blue-600"></i>
+                        <h3 class="text-sm font-bold text-slate-800">Overall Department share</h3>
+                    </div>
+                    <div class="relative h-[240px]">
+                        <canvas id="chart-department-share"></canvas>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2 mb-4">
+                        <i data-lucide="pie-chart" class="text-rose-600"></i>
+                        <h3 class="text-sm font-bold text-slate-800">Overall Severity Share</h3>
+                    </div>
+                    <div class="relative h-[240px]">
+                        <canvas id="chart-severity-share"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Summary Stats Table -->
+        <section class="glass-card rounded-2xl p-6">
+            <div class="flex items-center gap-2 mb-4">
+                <i data-lucide="table" class="text-slate-600"></i>
+                <h3 class="text-base font-bold text-slate-800">Department Summary metrics</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-slate-500">
+                    <thead class="text-xs text-slate-400 font-bold uppercase tracking-wider border-b border-slate-100">
+                        <tr>
+                            <th class="py-3 px-4">Civic Agency</th>
+                            <th class="py-3 px-4 text-center">Critical</th>
+                            <th class="py-3 px-4 text-center">High</th>
+                            <th class="py-3 px-4 text-center">Medium</th>
+                            <th class="py-3 px-4 text-center">Low</th>
+                            <th class="py-3 px-4 text-center">Non-Grievance</th>
+                            <th class="py-3 px-4 text-right">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="summary-table-body" class="divide-y divide-slate-50">
+                        <!-- Filled by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        
+        <footer class="text-center text-xs text-slate-400 py-6">
+            Grievance IQ Dashboard • FastAPI & PyTorch Transformer Stack • Deployed via Hugging Face Hub
+        </footer>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        
+        // Colors mapping for severity levels
+        const SEVERITY_COLORS = {
+            'critical': { text: '#b42318', bg: 'bg-rose-50 border-rose-100 text-rose-800', label: 'Critical' },
+            'high': { text: '#f97316', bg: 'bg-orange-50 border-orange-100 text-orange-800', label: 'High' },
+            'medium': { text: '#f59e0b', bg: 'bg-amber-50 border-amber-100 text-amber-800', label: 'Medium' },
+            'low': { text: '#0f766e', bg: 'bg-teal-50 border-teal-100 text-teal-800', label: 'Low' },
+            'non-grievance': { text: '#64748b', bg: 'bg-slate-100 border-slate-200 text-slate-800', label: 'Non-Grievance' }
+        };
+        
+        // Chart handles
+        let deptSevChart = null;
+        let deptShareChart = null;
+        let sevShareChart = null;
+
+        // Initialize Lucide Icons
+        window.addEventListener('load', () => {
+            lucide.createIcons();
+            checkBackendHealth();
+            fetchAnalytics();
+        });
+
+        // Form submission
+        document.getElementById('complaint-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-submit');
+            const text = document.getElementById('complaint-text').value.trim();
+            if(!text) return;
+            
+            btn.disabled = true;
+            btn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span> Processing predictions...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/predict`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ complaint: text })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(await response.text());
+                }
+                
+                const data = await response.json();
+                
+                // Show prediction results block
+                const resultBlock = document.getElementById('prediction-result');
+                resultBlock.classList.remove('hidden');
+                
+                document.getElementById('result-dept').innerText = data.predicted_department;
+                
+                const sev = data.severity.toLowerCase();
+                const sevConfig = SEVERITY_COLORS[sev] || SEVERITY_COLORS['medium'];
+                
+                const sevLabel = document.getElementById('result-severity');
+                sevLabel.innerText = sevConfig.label;
+                
+                const sevCard = document.getElementById('result-severity-card');
+                sevCard.className = `p-3.5 rounded-xl border ${sevConfig.bg}`;
+                
+                // Reset form input
+                document.getElementById('complaint-text').value = '';
+                
+                // Refresh metrics & charts
+                fetchAnalytics();
+                
+            } catch (err) {
+                alert(`Error running prediction: ${err.message}`);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> Run Predictive Routing';
+                lucide.createIcons();
+            }
+        });
+
+        async function checkBackendHealth() {
+            try {
+                const res = await fetch(`${API_BASE}/health`);
+                const data = await res.json();
+                const statusEl = document.getElementById('backend-status');
+                
+                if (data.status === 'ok') {
+                    statusEl.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span> Online`;
+                    statusEl.className = "flex items-center gap-1.5 font-semibold text-emerald-500";
+                    document.getElementById('pipeline-mode').innerText = data.is_mock ? 'Mock CI Mode' : 'Production WSV';
+                    document.getElementById('backend-device').innerText = data.device.toUpperCase();
+                } else {
+                    throw new Error();
+                }
+            } catch (err) {
+                const statusEl = document.getElementById('backend-status');
+                statusEl.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></span> Connection Failure`;
+                statusEl.className = "flex items-center gap-1.5 font-semibold text-rose-500";
+            }
+        }
+
+        async function fetchAnalytics() {
+            try {
+                const res = await fetch(`${API_BASE}/analytics`);
+                const data = await res.json();
+                
+                // Update KPIs
+                document.getElementById('kpi-total').innerText = data.total_complaints.toLocaleString();
+                document.getElementById('kpi-active').innerText = data.active_complaints.toLocaleString();
+                document.getElementById('kpi-critical').innerText = data.critical_complaints.toLocaleString();
+                
+                // Update Recent log
+                renderRecentLogs(data.recent_complaints);
+                
+                // Update Charts
+                renderCharts(data);
+                
+                // Update Table
+                renderTable(data);
+                
+            } catch (err) {
+                console.error("Error fetching analytics data: ", err);
+            }
+        }
+
+        function renderRecentLogs(complaints) {
+            const container = document.getElementById('recent-log-container');
+            container.innerHTML = '';
+            
+            if (complaints.length === 0) {
+                container.innerHTML = '<p class="text-slate-400 text-sm italic p-4 text-center">No logs registered yet.</p>';
+                return;
+            }
+            
+            complaints.forEach(item => {
+                const sev = item.severity.toLowerCase();
+                const sevConfig = SEVERITY_COLORS[sev] || SEVERITY_COLORS['medium'];
+                
+                const date = new Date(item.timestamp);
+                const dateString = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                
+                const card = document.createElement('div');
+                card.className = "p-4 bg-white/50 border border-slate-100 rounded-xl space-y-2 flex flex-col justify-between";
+                card.innerHTML = `
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="font-mono text-slate-400">ID: ${item.id}</span>
+                        <span class="text-slate-400 font-medium">${dateString}</span>
+                    </div>
+                    <p class="text-slate-700 text-sm font-medium leading-relaxed">${item.complaint}</p>
+                    <div class="flex items-center gap-2 pt-1">
+                        <span class="bg-teal-50 border border-teal-100 text-teal-800 text-[10px] font-bold py-0.5 px-2 rounded-full">${item.predicted_department}</span>
+                        <span class="border text-[10px] font-bold py-0.5 px-2 rounded-full ${sevConfig.bg}">${sevConfig.label}</span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function renderCharts(data) {
+            // 1. Stacked Bar Chart (Severity distribution per department)
+            const ctxDeptSev = document.getElementById('chart-department-severity').getContext('2d');
+            const severityOrder = ["Critical", "High", "Medium", "Low", "Non-Grievance"];
+            const colors = {
+                "Critical": "#f43f5e",
+                "High": "#f97316",
+                "Medium": "#f59e0b",
+                "Low": "#0f766e",
+                "Non-Grievance": "#94a3b8"
+            };
+            
+            const datasets = severityOrder.map(sev => {
+                return {
+                    label: sev,
+                    data: data.chart_matrix[sev],
+                    backgroundColor: colors[sev],
+                    borderRadius: 4
+                }
+            });
+            
+            if (deptSevChart) deptSevChart.destroy();
+            
+            deptSevChart = new Chart(ctxDeptSev, {
+                type: 'bar',
+                data: {
+                    labels: data.department_labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { stacked: true, grid: { display: false } },
+                        y: { stacked: true, grid: { color: 'rgba(0,0,0,0.03)' } }
+                    },
+                    plugins: {
+                        legend: { position: 'top', labels: { boxWidth: 12, font: { weight: 'bold', size: 10 } } }
+                    }
+                }
+            });
+            
+            // 2. Department Share (Donut)
+            const ctxShare = document.getElementById('chart-department-share').getContext('2d');
+            if (deptShareChart) deptShareChart.destroy();
+            
+            deptShareChart = new Chart(ctxShare, {
+                type: 'doughnut',
+                data: {
+                    labels: data.department_labels,
+                    datasets: [{
+                        data: data.department_distribution,
+                        backgroundColor: [
+                            '#0f172a', '#1e293b', '#0f766e', '#14b8a6', '#0284c7', '#3b82f6', '#f59e0b', '#b42318'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    cutout: '70%'
+                }
+            });
+            
+            // 3. Severity Share (Donut)
+            const ctxSev = document.getElementById('chart-severity-share').getContext('2d');
+            if (sevShareChart) sevShareChart.destroy();
+            
+            sevShareChart = new Chart(ctxSev, {
+                type: 'doughnut',
+                data: {
+                    labels: data.severity_labels,
+                    datasets: [{
+                        data: data.severity_distribution,
+                        backgroundColor: severityOrder.map(s => colors[s]),
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    cutout: '70%'
+                }
+            });
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('summary-table-body');
+            tbody.innerHTML = '';
+            
+            const severityOrder = ["Critical", "High", "Medium", "Low", "Non-Grievance"];
+            const departments = data.department_labels;
+            
+            departments.forEach((dept, index) => {
+                const total = data.department_distribution[index];
+                
+                const row = document.createElement('tr');
+                row.className = "hover:bg-slate-50/50 transition";
+                
+                let cellHtml = `<td class="py-3 px-4 font-bold text-slate-700">${dept}</td>`;
+                
+                severityOrder.forEach(sev => {
+                    const val = data.chart_matrix[sev][index] || 0;
+                    cellHtml += `<td class="py-3 px-4 text-center font-medium">${val.toLocaleString()}</td>`;
+                });
+                
+                cellHtml += `<td class="py-3 px-4 text-right font-black text-slate-800">${total.toLocaleString()}</td>`;
+                
+                row.innerHTML = cellHtml;
+                tbody.appendChild(row);
+            });
+        }
+    </script>
+</body>
+</html>

@@ -10,7 +10,6 @@ from nltk.stem import WordNetLemmatizer
 
 from src.ml.model_loader import ModelBundle
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 NLTK_DIR = PROJECT_ROOT / "data" / "nltk"
 
@@ -38,7 +37,29 @@ STOPWORDS = _build_stopwords()
 LEMMATIZER = WordNetLemmatizer()
 
 
+# Class mappings
+CIVIC_AGENCY_LABELS = [
+    "BBMP",
+    "BCP",
+    "BESCOM",
+    "BTP",
+    "BWSSB",
+    "KSFES",
+    "KSPCB",
+    "Transport",
+]
+
+SEVERITY_CLASSES = [
+    "Non-Grievance",
+    "Low",
+    "Medium",
+    "High",
+    "Critical",
+]
+
+
 def preprocess_text(text: str) -> str:
+    """Cleans and tokenizes text for model inference."""
     text = str(text).lower()
     text = re.sub(r"http[s]?://\S+|www\.\S+", "", text)
     text = re.sub(r"[^a-zA-Z\s]", " ", text)
@@ -57,33 +78,102 @@ def preprocess_text(text: str) -> str:
 
 
 def predict_department(bundle: ModelBundle, complaint: str) -> str:
+    """
+    Predicts the target department using Weighted Soft Voting (WSV) across
+    DistilBERT, RoBERTa, and DeBERTa v3.
+    Weights: DistilBERT=0.45, RoBERTa=0.25, DeBERTa v3=0.30
+    """
     cleaned = preprocess_text(complaint)
     if not cleaned:
         raise ValueError("Complaint text is empty after preprocessing.")
-    return str(bundle.department_model.predict([cleaned])[0])
+
+    device = bundle.device
+
+    # DistilBERT
+    inputs_distil = bundle.distilbert_tokenizer(
+        cleaned, return_tensors="pt", truncation=True, max_length=256
+    )
+    inputs_distil = {k: v.to(device) for k, v in inputs_distil.items()}
+
+    # RoBERTa Civic
+    inputs_rob = bundle.roberta_civic_tokenizer(
+        cleaned, return_tensors="pt", truncation=True, max_length=256
+    )
+    inputs_rob = {k: v.to(device) for k, v in inputs_rob.items()}
+
+    # DeBERTa v3
+    inputs_deb = bundle.deberta_tokenizer(
+        cleaned, return_tensors="pt", truncation=True, max_length=256
+    )
+    inputs_deb = {k: v.to(device) for k, v in inputs_deb.items()}
+
+    with torch.inference_mode():
+        outputs_distil = bundle.distilbert_model(**inputs_distil)
+        outputs_rob = bundle.roberta_civic_model(**inputs_rob)
+        outputs_deb = bundle.deberta_model(**inputs_deb)
+
+        probs_distil = torch.softmax(outputs_distil.logits, dim=-1)
+        probs_rob = torch.softmax(outputs_rob.logits, dim=-1)
+        probs_deb = torch.softmax(outputs_deb.logits, dim=-1)
+
+        # Apply optimized ensembling soft voting weights
+        blended_probs = 0.45 * probs_distil + 0.25 * probs_rob + 0.30 * probs_deb
+        pred_idx = torch.argmax(blended_probs, dim=-1).item()
+
+    return CIVIC_AGENCY_LABELS[pred_idx]
 
 
 def predict_severity(bundle: ModelBundle, complaint: str) -> str:
+    """
+    Predicts complaint severity in a two-stage sequential pipeline:
+    1. T5 model generates the severity reason from the complaint description.
+    2. RoBERTa classifier evaluates the description + reason pair to produce the class.
+    """
     cleaned = preprocess_text(complaint)
     if not cleaned:
         raise ValueError("Complaint text is empty after preprocessing.")
 
-    inputs = bundle.severity_tokenizer(
-        cleaned,
-        return_tensors="pt",
-        truncation=True,
-        max_length=256,
-    ).to(bundle.severity_device)
+    device = bundle.device
+
+    # ── Stage 1: T5 Reason Generation ─────────────────────────────────────────
+    # The T5 model expects input prefix: "predict severity reason: "
+    t5_input_text = "predict severity reason: " + cleaned
+    t5_inputs = bundle.t5_tokenizer(
+        t5_input_text, return_tensors="pt", truncation=True, max_length=512
+    )
+    t5_inputs = {k: v.to(device) for k, v in t5_inputs.items()}
 
     with torch.inference_mode():
-        outputs = bundle.severity_model(**inputs)
+        generated_ids = bundle.t5_model.generate(**t5_inputs, max_length=128)
+        
+    generated_reason = bundle.t5_tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
+    generated_reason = generated_reason.strip()
 
-    predicted_class_id = torch.argmax(outputs.logits, dim=-1).item()
-    predicted_label = bundle.severity_label_encoder.inverse_transform([predicted_class_id])[0]
-    return str(predicted_label).lower()
+    # ── Stage 2: RoBERTa Classification ───────────────────────────────────────
+    # Tokenize as a text pair: description text + generated severity reason
+    classification_inputs = bundle.severity_tokenizer(
+        cleaned,
+        text_pair=generated_reason,
+        return_tensors="pt",
+        max_length=256,
+        padding="max_length",
+        truncation=True,
+    )
+    classification_inputs = {k: v.to(device) for k, v in classification_inputs.items()}
+
+    with torch.inference_mode():
+        logits = bundle.severity_classifier(
+            input_ids=classification_inputs["input_ids"],
+            attention_mask=classification_inputs["attention_mask"],
+        )
+        pred_idx = torch.argmax(logits, dim=-1).item()
+
+    # Return severity label (normalize to lowercase to keep interface consistent)
+    return SEVERITY_CLASSES[pred_idx].lower()
 
 
 def predict_complaint(bundle: ModelBundle, complaint: str) -> tuple[str, str]:
+    """Classifies department and severity for a given complaint."""
     department = predict_department(bundle, complaint)
     severity = predict_severity(bundle, complaint)
     return department, severity
