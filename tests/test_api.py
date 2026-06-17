@@ -20,15 +20,14 @@ def client():
 
 
 def test_preprocess_text():
-    # Test lowercasing, links removal, special chars removal, and lemmatization/stopwords
+    # Test links removal and whitespace normalization, while preserving casing and stopwords
     raw_text = "Check out http://google.com for some sewage water leaking on 4th block!!"
     cleaned = preprocess_text(raw_text)
     
     assert "http" not in cleaned
     assert "google" not in cleaned
-    assert "!!" not in cleaned
     assert "sewage" in cleaned
-    assert "leak" in cleaned or "leaking" in cleaned
+    assert "leaking" in cleaned
 
 
 def test_model_loader_mock():
