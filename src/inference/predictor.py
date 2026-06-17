@@ -58,23 +58,34 @@ SEVERITY_CLASSES = [
 ]
 
 
+_BOILERPLATE = [
+    r"sent from my.*?",
+]
+
+
 def preprocess_text(text: str) -> str:
-    """Cleans and tokenizes text for model inference."""
-    text = str(text).lower()
-    text = re.sub(r"http[s]?://\S+|www\.\S+", "", text)
-    text = re.sub(r"[^a-zA-Z\s]", " ", text)
+    """Cleans and tokenizes text for model inference, preserving casing, grammar, and stopwords."""
+    text = str(text)
+
+    # Remove URLs
+    text = re.sub(r"http[s]?://\S+|www\.\S+", " ", text)
+
+    # Remove complaint/ticket/reference IDs
+    text = re.sub(
+        r"(complaint|ticket|reference)\s*(id|number|no)?\s*[:\-]?\s*\w+",
+        " ",
+        text,
+        flags=re.IGNORECASE,
+    )
+
+    # Remove boilerplate signatures
+    for pat in _BOILERPLATE:
+        text = re.sub(pat, " ", text, flags=re.IGNORECASE)
+
+    # Normalize whitespace
     text = re.sub(r"\s+", " ", text).strip()
 
-    tokens: list[str] = []
-    for token in text.split():
-        try:
-            lemma = LEMMATIZER.lemmatize(token)
-        except LookupError:
-            lemma = token
-        if lemma not in STOPWORDS:
-            tokens.append(lemma)
-
-    return " ".join(tokens)
+    return text
 
 
 def predict_department(bundle: ModelBundle, complaint: str) -> str:
@@ -123,11 +134,13 @@ def predict_department(bundle: ModelBundle, complaint: str) -> str:
     return CIVIC_AGENCY_LABELS[pred_idx]
 
 
-def predict_severity(bundle: ModelBundle, complaint: str) -> str:
+def predict_severity(bundle: ModelBundle, complaint: str) -> tuple[str, str]:
     """
     Predicts complaint severity in a two-stage sequential pipeline:
     1. T5 model generates the severity reason from the complaint description.
     2. RoBERTa classifier evaluates the description + reason pair to produce the class.
+    Returns:
+        tuple[str, str]: (severity_level, generated_reason)
     """
     cleaned = preprocess_text(complaint)
     if not cleaned:
@@ -144,7 +157,12 @@ def predict_severity(bundle: ModelBundle, complaint: str) -> str:
     t5_inputs = {k: v.to(device) for k, v in t5_inputs.items()}
 
     with torch.inference_mode():
-        generated_ids = bundle.t5_model.generate(**t5_inputs, max_length=128)
+        generated_ids = bundle.t5_model.generate(
+            **t5_inputs,
+            max_new_tokens=48,
+            num_beams=1,
+            do_sample=False,
+        )
         
     generated_reason = bundle.t5_tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
     generated_reason = generated_reason.strip()
@@ -168,12 +186,12 @@ def predict_severity(bundle: ModelBundle, complaint: str) -> str:
         )
         pred_idx = torch.argmax(logits, dim=-1).item()
 
-    # Return severity label (normalize to lowercase to keep interface consistent)
-    return SEVERITY_CLASSES[pred_idx].lower()
+    # Return severity label (normalize to lowercase to keep interface consistent) and the generated reason
+    return SEVERITY_CLASSES[pred_idx].lower(), generated_reason
 
 
-def predict_complaint(bundle: ModelBundle, complaint: str) -> tuple[str, str]:
+def predict_complaint(bundle: ModelBundle, complaint: str) -> tuple[str, str, str]:
     """Classifies department and severity for a given complaint."""
     department = predict_department(bundle, complaint)
-    severity = predict_severity(bundle, complaint)
-    return department, severity
+    severity, reason = predict_severity(bundle, complaint)
+    return department, severity, reason

@@ -6,7 +6,7 @@ from pathlib import Path
 from uuid import uuid4
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 LOG_FILE_PATH = PROJECT_ROOT / "logs" / "complaints.jsonl"
 
 
@@ -14,6 +14,7 @@ def append_prediction_log(
     complaint: str,
     predicted_department: str,
     severity: str,
+    severity_reason: str = "",
     model_version: str = "v1.0",
 ) -> None:
     LOG_FILE_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -24,6 +25,7 @@ def append_prediction_log(
         "complaint": complaint,
         "predicted_department": predicted_department,
         "severity": severity,
+        "severity_reason": severity_reason,
         "model_version": model_version,
     }
 

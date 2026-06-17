@@ -206,12 +206,20 @@ def load_model_bundle() -> ModelBundle:
     deberta_model.eval()
 
     # Load T5 Severity Reason Generator (Fold 0)
-    if T5_SEVERITY_DIR.exists():
+    t5_local_path = None
+    if (PROJECT_ROOT / "models" / "severity" / "dataset_v2" / "t5_base_reason" / "model").exists():
+        t5_local_path = PROJECT_ROOT / "models" / "severity" / "dataset_v2" / "t5_base_reason" / "model"
+    elif (PROJECT_ROOT / "models" / "severity" / "dataset_v2" / "t5_base_reason" / "fold_0" / "model").exists():
+        t5_local_path = PROJECT_ROOT / "models" / "severity" / "dataset_v2" / "t5_base_reason" / "fold_0" / "model"
+
+    if t5_local_path is not None:
+        print(f"[INFO] Model loader: Loading local T5 severity model from '{t5_local_path}'...")
+        t5_tokenizer_path = t5_local_path.parent / "tokenizer"
         t5_tokenizer = T5Tokenizer.from_pretrained(
-            str(T5_SEVERITY_DIR / "tokenizer") if (T5_SEVERITY_DIR / "tokenizer").exists() else "t5-base",
+            str(t5_tokenizer_path) if t5_tokenizer_path.exists() else "t5-base",
             use_fast=False,
         )
-        t5_model = T5ForConditionalGeneration.from_pretrained(str(T5_SEVERITY_DIR)).to(device)
+        t5_model = T5ForConditionalGeneration.from_pretrained(str(t5_local_path)).to(device)
     else:
         print(f"[INFO] Model loader: Local T5 severity not found. Fetching from HF Hub '{hf_repo}'...")
         t5_tokenizer = T5Tokenizer.from_pretrained(

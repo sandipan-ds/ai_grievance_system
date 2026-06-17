@@ -217,7 +217,7 @@ async def predict(
     """Predicts department (WSV ensemble) and severity (T5+RoBERTa) for a complaint."""
     try:
         models: ModelBundle = request.app.state.models
-        predicted_department, severity = predict_complaint(models, payload.complaint)
+        predicted_department, severity, severity_reason = predict_complaint(models, payload.complaint)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
@@ -231,12 +231,14 @@ async def predict(
         complaint=payload.complaint,
         predicted_department=predicted_department,
         severity=severity,
+        severity_reason=severity_reason,
         model_version="v2.0-wsv-roberta",
     )
 
     return PredictionResponse(
         predicted_department=predicted_department,
         severity=severity,
+        severity_reason=severity_reason,
     )
 
 
@@ -293,6 +295,7 @@ async def get_analytics(request: Request) -> dict[str, Any]:
             "complaint": item.get("complaint", ""),
             "predicted_department": dept,
             "severity": sev.lower(),
+            "severity_reason": item.get("severity_reason", ""),
         })
 
     # Keep only the last 15 recent items

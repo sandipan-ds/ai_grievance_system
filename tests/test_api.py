@@ -20,15 +20,14 @@ def client():
 
 
 def test_preprocess_text():
-    # Test lowercasing, links removal, special chars removal, and lemmatization/stopwords
+    # Test links removal and whitespace normalization, while preserving casing and stopwords
     raw_text = "Check out http://google.com for some sewage water leaking on 4th block!!"
     cleaned = preprocess_text(raw_text)
     
     assert "http" not in cleaned
     assert "google" not in cleaned
-    assert "!!" not in cleaned
     assert "sewage" in cleaned
-    assert "leak" in cleaned or "leaking" in cleaned
+    assert "leaking" in cleaned
 
 
 def test_model_loader_mock():
@@ -46,12 +45,14 @@ def test_predictor_mock():
     dept = predict_department(bundle, complaint)
     assert dept in ["BBMP", "BCP", "BESCOM", "BTP", "BWSSB", "KSFES", "KSPCB", "Transport"]
     
-    sev = predict_severity(bundle, complaint)
+    sev, reason = predict_severity(bundle, complaint)
     assert sev in ["non-grievance", "low", "medium", "high", "critical"]
+    assert isinstance(reason, str)
     
-    d, s = predict_complaint(bundle, complaint)
+    d, s, r = predict_complaint(bundle, complaint)
     assert d == dept
     assert s == sev
+    assert r == reason
 
 
 def test_api_health(client):
@@ -73,7 +74,9 @@ def test_api_predict(client):
     data = response.json()
     assert "predicted_department" in data
     assert "severity" in data
+    assert "severity_reason" in data
     assert data["severity"] in ["non-grievance", "low", "medium", "high", "critical"]
+    assert isinstance(data["severity_reason"], str)
 
 
 def test_api_predict_validation(client):
