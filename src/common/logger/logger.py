@@ -6,7 +6,7 @@ from pathlib import Path
 from uuid import uuid4
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 LOG_FILE_PATH = PROJECT_ROOT / "logs" / "complaints.jsonl"
 
 
