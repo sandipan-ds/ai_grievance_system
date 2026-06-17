@@ -20,3 +20,5 @@ class PredictionRequest(BaseModel):
 class PredictionResponse(BaseModel):
     predicted_department: str
     severity: Literal["critical", "high", "medium", "low", "non-grievance"]
+    severity_reason: str
+

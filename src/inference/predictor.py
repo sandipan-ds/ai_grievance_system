@@ -123,11 +123,13 @@ def predict_department(bundle: ModelBundle, complaint: str) -> str:
     return CIVIC_AGENCY_LABELS[pred_idx]
 
 
-def predict_severity(bundle: ModelBundle, complaint: str) -> str:
+def predict_severity(bundle: ModelBundle, complaint: str) -> tuple[str, str]:
     """
     Predicts complaint severity in a two-stage sequential pipeline:
     1. T5 model generates the severity reason from the complaint description.
     2. RoBERTa classifier evaluates the description + reason pair to produce the class.
+    Returns:
+        tuple[str, str]: (severity_level, generated_reason)
     """
     cleaned = preprocess_text(complaint)
     if not cleaned:
@@ -168,12 +170,12 @@ def predict_severity(bundle: ModelBundle, complaint: str) -> str:
         )
         pred_idx = torch.argmax(logits, dim=-1).item()
 
-    # Return severity label (normalize to lowercase to keep interface consistent)
-    return SEVERITY_CLASSES[pred_idx].lower()
+    # Return severity label (normalize to lowercase to keep interface consistent) and the generated reason
+    return SEVERITY_CLASSES[pred_idx].lower(), generated_reason
 
 
-def predict_complaint(bundle: ModelBundle, complaint: str) -> tuple[str, str]:
+def predict_complaint(bundle: ModelBundle, complaint: str) -> tuple[str, str, str]:
     """Classifies department and severity for a given complaint."""
     department = predict_department(bundle, complaint)
-    severity = predict_severity(bundle, complaint)
-    return department, severity
+    severity, reason = predict_severity(bundle, complaint)
+    return department, severity, reason

@@ -171,6 +171,12 @@
                                 <p id="result-severity" class="text-lg font-black text-rose-800">Critical</p>
                             </div>
                         </div>
+                        <div class="bg-slate-50 border border-slate-100 p-3.5 rounded-xl">
+                            <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1">
+                                <i data-lucide="brain-circuit" class="w-3.5 h-3.5 text-teal-600"></i> Severity Explanation (T5 CoT)
+                            </span>
+                            <p id="result-reason" class="text-xs font-medium text-slate-600 leading-relaxed italic mt-1.5"></p>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -320,6 +326,8 @@
                 const sevCard = document.getElementById('result-severity-card');
                 sevCard.className = `p-3.5 rounded-xl border ${sevConfig.bg}`;
                 
+                document.getElementById('result-reason').innerText = data.severity_reason || 'N/A';
+                
                 // Reset form input
                 document.getElementById('complaint-text').value = '';
                 
@@ -390,27 +398,35 @@
             }
             
             complaints.forEach(item => {
-                const sev = item.severity.toLowerCase();
-                const sevConfig = SEVERITY_COLORS[sev] || SEVERITY_COLORS['medium'];
-                
-                const date = new Date(item.timestamp);
-                const dateString = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                
-                const card = document.createElement('div');
-                card.className = "p-4 bg-white/50 border border-slate-100 rounded-xl space-y-2 flex flex-col justify-between";
-                card.innerHTML = `
-                    <div class="flex items-center justify-between text-xs">
-                        <span class="font-mono text-slate-400">ID: ${item.id}</span>
-                        <span class="text-slate-400 font-medium">${dateString}</span>
-                    </div>
-                    <p class="text-slate-700 text-sm font-medium leading-relaxed">${item.complaint}</p>
-                    <div class="flex items-center gap-2 pt-1">
-                        <span class="bg-teal-50 border border-teal-100 text-teal-800 text-[10px] font-bold py-0.5 px-2 rounded-full">${item.predicted_department}</span>
-                        <span class="border text-[10px] font-bold py-0.5 px-2 rounded-full ${sevConfig.bg}">${sevConfig.label}</span>
-                    </div>
-                `;
-                container.appendChild(card);
-            });
+            const sev = item.severity.toLowerCase();
+            const sevConfig = SEVERITY_COLORS[sev] || SEVERITY_COLORS['medium'];
+            
+            const date = new Date(item.timestamp);
+            const dateString = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            const reasonHtml = item.severity_reason 
+                ? `<div class="mt-2 text-xs bg-slate-50 border border-slate-100 rounded-lg p-2.5 text-slate-500 italic flex flex-col gap-0.5">
+                       <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Severity Reason (T5 CoT)</span>
+                       <span>${item.severity_reason}</span>
+                   </div>`
+                : '';
+            
+            const card = document.createElement('div');
+            card.className = "p-4 bg-white/50 border border-slate-100 rounded-xl space-y-2 flex flex-col justify-between";
+            card.innerHTML = `
+                <div class="flex items-center justify-between text-xs">
+                    <span class="font-mono text-slate-400">ID: ${item.id}</span>
+                    <span class="text-slate-400 font-medium">${dateString}</span>
+                </div>
+                <p class="text-slate-700 text-sm font-medium leading-relaxed">${item.complaint}</p>
+                ${reasonHtml}
+                <div class="flex items-center gap-2 pt-1">
+                    <span class="bg-teal-50 border border-teal-100 text-teal-800 text-[10px] font-bold py-0.5 px-2 rounded-full">${item.predicted_department}</span>
+                    <span class="border text-[10px] font-bold py-0.5 px-2 rounded-full ${sevConfig.bg}">${sevConfig.label}</span>
+                </div>
+            `;
+            container.appendChild(card);
+        });
         }
 
         function renderCharts(data) {
